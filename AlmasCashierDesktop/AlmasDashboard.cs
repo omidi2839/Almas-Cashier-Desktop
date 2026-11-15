@@ -36,7 +36,6 @@ internal sealed class AlmasDashboard : Form
         new("DEMO-1153","فروشگاه النخیل",4500000,4500000,"۰۹:۳۰")
     };
     private readonly List<string> _activity=new(){"۱۴:۲۵  فاکتور نمونه ثبت شد","۱۴:۱۰  دریافت نمونه ثبت شد","۱۳:۳۰  پیش‌نمایش رسید باز شد","۱۲:۵۸  صندوق آزمایشی باز شد"};
-    private bool _arabic=false; // Language-ready layout; Persian is intentionally the only active translation.
     private string _role="صندوقدار";
     private string _section="داشبورد";
     private string _gateway="https://desktop.sejadalmas.iq";
@@ -51,7 +50,7 @@ internal sealed class AlmasDashboard : Form
     private sealed record DemoInvoice(string Number,string Customer,decimal Total,decimal Paid,string Time);
     public AlmasDashboard(){
         Text="الماس — نسخه ویندوز | پیش‌نمایش 0.2.0";
-        Icon=Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        Icon=System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         MinimumSize=new Size(1100,690);Size=new Size(1500,900);StartPosition=FormStartPosition.CenterScreen;
         WindowState=FormWindowState.Maximized;Font=new Font("Segoe UI",10);ForeColor=Dark;BackColor=Cream;
         AutoScaleMode=AutoScaleMode.Dpi;
@@ -109,12 +108,13 @@ internal sealed class AlmasDashboard : Form
     private async Task CheckGateway(){
         if(_checking)return;_checking=true;SetConnection("در حال بررسی",Muted);
         try{
-            using var response=await HealthClient.GetAsync(_gateway.TrimEnd('/')+"/almas-cashier-api/health",HttpCompletionOption.ResponseHeadersRead);
+            using var timeout=new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(7));
+            using var response=await HealthClient.GetAsync(_gateway.TrimEnd('/')+"/almas-cashier-api/health",HttpCompletionOption.ResponseHeadersRead,timeout.Token);
             // No bearer token or credentials are sent in this build.
             if(!response.IsSuccessStatusCode){SetConnection("API در دسترس نیست",Orange);return;}
             if(response.Content.Headers.ContentLength is long n && n>65536){SetConnection("پاسخ نامعتبر",Orange);return;}
-            await using var stream=await response.Content.ReadAsStreamAsync();using var buf=new MemoryStream();
-            var bytes=new byte[4096];int k;while((k=await stream.ReadAsync(bytes.AsMemory()))>0){if(buf.Length+k>65536){SetConnection("پاسخ نامعتبر",Orange);return;}buf.Write(bytes,0,k);}
+            await using var stream=await response.Content.ReadAsStreamAsync(timeout.Token);using var buf=new MemoryStream();
+            var bytes=new byte[4096];int k;while((k=await stream.ReadAsync(bytes.AsMemory(),timeout.Token))>0){if(buf.Length+k>65536){SetConnection("پاسخ نامعتبر",Orange);return;}buf.Write(bytes,0,k);}
             using var doc=JsonDocument.Parse(buf.ToArray());var x=doc.RootElement;
             bool ok=x.TryGetProperty("success",out var success)&&success.ValueKind==JsonValueKind.True&&x.TryGetProperty("service",out var s)&&s.GetString()=="almas_cashier_desktop";
             SetConnection(ok?"API پاسخ‌گو است":"API تأیید نشد",ok?Green:Orange);
@@ -184,7 +184,7 @@ internal sealed class AlmasDashboard : Form
     private Control SectionPage(string name){
         var c=Card(name+" — محیط آزمایشی",3);c.RowStyles.Add(new RowStyle(SizeType.Absolute,95));c.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         c.Controls.Add(L("این بخش برای بازبینی چیدمان آماده است. ورود واقعی، ثبت قطعی، تأیید صندوق و همگام‌سازی در این پیش‌نمایش فعال نیست.",13,false,Muted),0,1);
-        if(name=="ثبت سفارش"||name=="اسناد دریافتی")c.Controls.Add(B("باز کردن فرم نمونه",name=="ثبت سفارش"?DemoCreate:DemoPayment),0,2);else c.Controls.Add(L("پیش‌نمایش رابط — بدون اثر مالی",16,true,Orange,ContentAlignment.MiddleCenter),0,2);return c;
+        if(name=="ثبت سفارش"||name=="اسناد دریافتی")c.Controls.Add(B("باز کردن فرم نمونه",name=="ثبت سفارش"?(Action)DemoCreate:DemoPayment),0,2);else c.Controls.Add(L("پیش‌نمایش رابط — بدون اثر مالی",16,true,Orange,ContentAlignment.MiddleCenter),0,2);return c;
     }
     private Control Settings(){
         var c=Card("تنظیمات نسخه ویندوز",6);AbsRowsSecondary(c,40,55,55,50);
