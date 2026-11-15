@@ -1,5 +1,5 @@
 #define AppName "Almas Cashier Desktop"
-#define AppVersion "0.2.2"
+#define AppVersion "0.2.3"
 #define AppExe "AlmasCashierDesktop.exe"
 [Setup]
 AppId={{8465B810-E81B-4109-B69B-64DFB0D1FB04}
@@ -10,7 +10,7 @@ DefaultDirName={autopf}\Almas Cashier Desktop
 DefaultGroupName=Almas Cashier Desktop
 UninstallDisplayIcon={app}\{#AppExe}
 OutputDir=..\artifacts\installer
-OutputBaseFilename=AlmasCashierDesktop_v0.2.2_Setup_Windows_x64
+OutputBaseFilename=AlmasCashierDesktop_v0.2.3_Setup_Windows_x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

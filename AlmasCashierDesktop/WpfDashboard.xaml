@@ -1,9 +1,9 @@
 <Window x:Class="AlmasCashierDesktop.WpfDashboard"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="الماس | فروش و حسابداری — 0.2.2" Width="1440" Height="850" MinWidth="980" MinHeight="620"
+ Title="الماس | فروش و حسابداری — 0.2.3" Width="1440" Height="850" MinWidth="980" MinHeight="620"
  WindowStartupLocation="CenterScreen" WindowState="Maximized" Background="#F6F2EE"
- FontFamily="Vazirmatn, Tahoma, Segoe UI" FontSize="12" Foreground="#302B28"
+ FontFamily="./Fonts/#Vazirmatn, Tahoma, Segoe UI" FontSize="12" Foreground="#302B28"
  FlowDirection="RightToLeft" Language="fa-IR" UseLayoutRounding="True" SnapsToDevicePixels="True"
  TextOptions.TextFormattingMode="Display">
  <Window.Resources>
@@ -102,9 +102,9 @@
    <Grid.RowDefinitions><RowDefinition Height="64"/><RowDefinition Height="12"/><RowDefinition Height="*"/></Grid.RowDefinitions>
    <Border Style="{StaticResource Card}" Padding="15,8">
     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-     <StackPanel VerticalAlignment="Center"><TextBlock x:Name="PageTitle" Text="داشبورد" FontSize="19" FontWeight="SemiBold"/><TextBlock Text="شعبه نجف  •  محیط آزمایشی" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,4,0,0"/></StackPanel>
+     <StackPanel VerticalAlignment="Center"><TextBlock x:Name="PageTitle" Text="داشبورد" FontSize="19" FontWeight="SemiBold"/><TextBlock x:Name="ModeLabel" Text="شعبه نجف  •  محیط آزمایشی" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,4,0,0"/></StackPanel>
      <Border Grid.Column="1" Background="#F6EEE4" CornerRadius="7" Padding="10,6" Margin="0,0,12,0" VerticalAlignment="Center"><TextBlock x:Name="ConnectionLabel" Text="●  متصل نیست" Foreground="#91612F" FontSize="11"/></Border>
-     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Button Content="آزمون اتصال" Style="{StaticResource Secondary}" Click="CheckConnection_Click" Margin="0,0,10,0"/><TextBlock x:Name="RoleLabel" Text="صندوقدار آزمایشی" FontSize="11" Foreground="{StaticResource Muted}"/></StackPanel>
+     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Button x:Name="ConnectButton" Content="اتصال به سامانه" Style="{StaticResource Secondary}" Click="CheckConnection_Click" Margin="0,0,10,0"/><TextBlock x:Name="RoleLabel" Text="صندوقدار آزمایشی" FontSize="11" Foreground="{StaticResource Muted}"/></StackPanel>
     </Grid>
    </Border>
    <Grid Grid.Row="2" x:Name="DashboardView">
@@ -128,9 +128,9 @@
     </ItemsControl>
     <Border Grid.Row="2" Style="{StaticResource Card}" Padding="10,6">
      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>
-      <Button Content="＋ ایجاد فاکتور" Style="{StaticResource Primary}" Click="Create_Click" Margin="0,0,8,0"/>
-      <Button Grid.Column="1" Content="ثبت دریافت" Style="{StaticResource Secondary}" Click="Payment_Click" Margin="0,0,8,0"/>
-      <Button Grid.Column="2" Content="چاپ رسید" Style="{StaticResource Secondary}" Click="Receipt_Click"/>
+      <Button x:Name="CreateButton" Content="＋ ایجاد فاکتور" Style="{StaticResource Primary}" Click="Create_Click" Margin="0,0,8,0"/>
+      <Button x:Name="PayButton" Grid.Column="1" Content="ثبت دریافت" Style="{StaticResource Secondary}" Click="Payment_Click" Margin="0,0,8,0"/>
+      <Button x:Name="ReceiptButton" Grid.Column="2" Content="چاپ رسید" Style="{StaticResource Secondary}" Click="Receipt_Click"/>
       <Grid Grid.Column="4"><TextBox x:Name="SearchBox" Padding="10,6" TextChanged="Search_Changed" ToolTip="جستجوی شماره یا مشتری"/><TextBlock x:Name="SearchHint" Text="جستجوی شماره یا مشتری..." Foreground="#9A8C80" FontSize="11" Margin="11,0" IsHitTestVisible="False"/></Grid>
      </Grid>
     </Border>
@@ -138,7 +138,7 @@
      <Grid><Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/><RowDefinition Height="30"/></Grid.RowDefinitions>
       <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <TextBlock x:Name="TableTitle" Text="آخرین فاکتورها" FontSize="15" FontWeight="SemiBold"/>
-       <TextBlock Grid.Column="1" Text="داده‌های نمونه • بدون اثر مالی" FontSize="10" Foreground="{StaticResource Muted}"/>
+       <TextBlock x:Name="TableNote" Grid.Column="1" Text="داده‌های نمونه • بدون اثر مالی" FontSize="10" Foreground="{StaticResource Muted}"/>
       </Grid>
       <DataGrid x:Name="InvoicesGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
        CanUserSortColumns="True" CanUserResizeColumns="True" HeadersVisibility="Column" GridLinesVisibility="None" BorderThickness="0" Background="Transparent"
@@ -153,7 +153,7 @@
         <DataGridTemplateColumn Header="وضعیت" SortMemberPath="Status" Width="1.05*" MinWidth="95"><DataGridTemplateColumn.CellTemplate><DataTemplate>
          <Border CornerRadius="10" Background="{Binding StatusBackground}" Padding="9,4" HorizontalAlignment="Right"><TextBlock Text="{Binding Status}" Foreground="{Binding StatusColor}" FontSize="11" HorizontalAlignment="Center"/></Border>
         </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-        <DataGridTextColumn Header="زمان" Binding="{Binding Time}" ElementStyle="{StaticResource NumericCell}" Width="0.65*" MinWidth="55"/>
+        <DataGridTextColumn Header="تاریخ" Binding="{Binding Time}" ElementStyle="{StaticResource NumericCell}" Width="1.0*" MinWidth="85"/>
         <DataGridTemplateColumn Header="عملیات" Width="76" CanUserSort="False"><DataGridTemplateColumn.CellTemplate><DataTemplate>
          <Button Content="جزئیات" Style="{StaticResource Secondary}" Height="28" Padding="7,0" FontSize="10" Click="Details_Click"/>
         </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
@@ -171,7 +171,7 @@
    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <TextBlock x:Name="ClockLabel" FontSize="10" Foreground="{StaticResource Muted}"/>
     <TextBlock Grid.Column="1" Text="نجف، عراق" HorizontalAlignment="Center" FontSize="10" Foreground="{StaticResource Muted}"/>
-    <TextBlock Grid.Column="2" Text="0.2.2  |  پیش‌نمایش محلی WPF" HorizontalAlignment="Left" FontSize="10" Foreground="{StaticResource Muted}"/>
+    <TextBlock x:Name="FooterMode" Grid.Column="2" Text="0.2.3  |  پیش‌نمایش محلی WPF" HorizontalAlignment="Left" FontSize="10" Foreground="{StaticResource Muted}"/>
    </Grid>
   </Border>
  </Grid>

@@ -8,5 +8,5 @@ assert 'UseWPF' in (r/'AlmasCashierDesktop/AlmasCashierDesktop.csproj').read_tex
 assert 'new WpfDashboard()' in (r/'AlmasCashierDesktop/Program.cs').read_text()
 assert 'DEMO-' in s and 'AllowAutoRedirect=false' in s and 'PostAsync' not in s
 assert 'وظایف امروز' not in x.read_text(encoding='utf-8') and 'آخرین فعالیت‌ها' not in x.read_text(encoding='utf-8')
-assert '0.2.2' in (r/'installer/AlmasCashier.iss').read_text()
+assert '0.2.3' in (r/'installer/AlmasCashier.iss').read_text()
 print('PASS: WPF, simplified layout, secure preview, version')

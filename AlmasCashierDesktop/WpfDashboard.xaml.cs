@@ -46,13 +46,14 @@ public partial class WpfDashboard : Window
     private static string Fa(string s)=>string.Concat(s.Select(c=>c>='0'&&c<='9'?(char)('۰'+c-'0'):c==','?'٬':c));
     private static string Money(decimal v)=>Fa(v.ToString("N0",CultureInfo.InvariantCulture));
     private static string Normalize(string s)=>string.Concat(s.Trim().Select(c=>c>='۰'&&c<='۹'?(char)('0'+c-'۰'):c>='٠'&&c<='٩'?(char)('0'+c-'٠'):c=='ي'?'ی':c=='ك'?'ک':c));
-    public sealed record Invoice(string Number,string Customer,decimal Total,decimal Paid,string Time)
+    public sealed record Invoice(string Number,string Customer,decimal Total,decimal Paid,string Time,string ServerStatus="",string Currency="IQD")
     {
         public decimal Remaining=>Math.Max(0,Total-Paid);
-        public string TotalText=>Money(Total);
-        public string PaidText=>Money(Paid);
-        public string RemainingText=>Money(Remaining);
-        public string Status=>Paid>=Total?"تسویه شده":Paid>0?"پرداخت جزئی":"باز";
+        public string TotalText=>FormatCurrency(Total);
+        public string PaidText=>FormatCurrency(Paid);
+        public string RemainingText=>FormatCurrency(Remaining);
+        private string FormatCurrency(decimal v)=>Currency=="IQD"?Money(v):Fa(v.ToString("N2",CultureInfo.InvariantCulture))+" "+Currency;
+        public string Status=>ServerStatus!=""?ServerStatus:Paid>=Total?"تسویه شده":Paid>0?"پرداخت جزئی":"باز";
         public string StatusBackground=>Paid>=Total?"#E5F3E6":Paid>0?"#FFF1D9":"#E7EFF8";
         public string StatusColor=>Paid>=Total?"#277746":Paid>0?"#97601D":"#32699C";
     }
@@ -61,6 +62,7 @@ public partial class WpfDashboard : Window
     private void BuildMenu()
     {
         Navigation.Children.Clear();nav.Clear();
+        if(liveMode){BuildLiveMenu();return;}
         foreach(var item in menu)
         {
             if(item.Accounting&&role!="حسابدار")continue;
@@ -74,6 +76,7 @@ public partial class WpfDashboard : Window
     }
     private void Navigate(string name)
     {
+        if(liveMode&&name!="تنظیمات"){OpenLive(name);return;}
         section=name;PageTitle.Text=name;
         foreach(var pair in nav)pair.Value.Tag=pair.Key==name?"active":null;
         bool show=name=="داشبورد"||name=="فاکتورها";
@@ -89,6 +92,7 @@ public partial class WpfDashboard : Window
     }
     private void Refresh()
     {
+        if(liveMode){RefreshLive();return;}
         Metrics.ItemsSource=new[]{
             new Metric("فروش امروز",Money(invoices.Sum(i=>i.Total)),"دینار • نمونه","\uE7BF","#FBEBD9","#C76C20"),
             new Metric("دریافتی امروز",Money(invoices.Sum(i=>i.Paid)),"دینار • نمونه","\uE8C7","#E7F4E5","#39834B"),
@@ -116,6 +120,8 @@ public partial class WpfDashboard : Window
     private static bool ValidGateway(string? s)=>Uri.TryCreate(s,UriKind.Absolute,out var u)&&u.Scheme=="https"&&u.UserInfo==""&&u.Host.Length>0&&u.AbsolutePath=="/"&&u.Query==""&&u.Fragment=="";
     private void Settings()
     {
+        LiveSettings();return;
+#pragma warning disable CS0162
         OtherContent.Children.Add(new TextBlock{Text="نشانی درگاه امن (HTTPS)",FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,0,0,8)});
         var input=new TextBox{Text=gateway,FlowDirection=FlowDirection.LeftToRight,MaxWidth=600,HorizontalAlignment=HorizontalAlignment.Right};
         OtherContent.Children.Add(input);
@@ -129,9 +135,10 @@ public partial class WpfDashboard : Window
         OtherContent.Children.Add(ActionButton("نمای حسابدار",()=>ChangeRole("حسابدار")));
         OtherContent.Children.Add(new TextBlock{Text="زبان فعلی فارسی است. تغییر نقش صرفاً نمای آزمایشی را تغییر می‌دهد و مجوز عملیاتی ایجاد نمی‌کند.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,18,0,0)});
     }
+    #pragma warning restore CS0162
     private void ChangeRole(string r){role=r;BuildMenu();Navigate("داشبورد");}
     private void SetConnection(string text,bool ok){ConnectionLabel.Text="●  "+text;ConnectionLabel.Foreground=new SolidColorBrush((Color)ColorConverter.ConvertFromString(ok?"#277746":"#91612F"));}
-    private async void CheckConnection_Click(object sender,RoutedEventArgs e)=>await CheckGateway();
+    private async void CheckConnection_Click(object sender,RoutedEventArgs e){if(liveMode)await ReloadLive();else Navigate("تنظیمات");}
     private async Task CheckGateway()
     {
         if(checking)return;checking=true;SetConnection("در حال بررسی",false);
@@ -156,6 +163,7 @@ public partial class WpfDashboard : Window
     private void Create_Click(object sender,RoutedEventArgs e)=>CreateDemo("فاکتور نمونه");
     private void CreateDemo(string title)
     {
+        if(liveMode)return;
         var p=new StackPanel();var w=Dialog(title,p);p.Children.Add(new TextBlock{Text="داده آزمایشی — بدون اثر مالی",Foreground=Brushes.SaddleBrown});
         p.Children.Add(FieldLabel("مشتری"));var customer=new ComboBox{ItemsSource=new[]{"مشتری نمونه الف","مشتری نمونه ب","مشتری نمونه ج"},SelectedIndex=0};p.Children.Add(customer);
         p.Children.Add(FieldLabel("مبلغ (دینار)"));var amount=new TextBox{Text="100000",FlowDirection=FlowDirection.LeftToRight};p.Children.Add(amount);
@@ -170,6 +178,7 @@ public partial class WpfDashboard : Window
     private void Payment_Click(object sender,RoutedEventArgs e)=>DemoPayment();
     private void DemoPayment()
     {
+        if(liveMode)return;
         var options=invoices.Where(x=>x.Remaining>0).ToList();if(options.Count==0){MessageBox.Show(this,"فاکتور باز نمونه وجود ندارد.");return;}
         var p=new StackPanel();var w=Dialog("ثبت دریافت نمونه",p);p.Children.Add(new TextBlock{Text="پرداخت آزمایشی — بدون اثر مالی",Foreground=Brushes.SaddleBrown});
         p.Children.Add(FieldLabel("فاکتور"));var select=new ComboBox{ItemsSource=options,DisplayMemberPath="Number",SelectedIndex=0};p.Children.Add(select);
@@ -180,12 +189,13 @@ public partial class WpfDashboard : Window
     }
     private void Receipt_Click(object sender,RoutedEventArgs e)
     {
+        if(liveMode)return;
         var i=InvoicesGrid.SelectedItem as Invoice??invoices.FirstOrDefault();if(i==null)return;
         MessageBox.Show(this,i.Number+"\n"+i.Customer+"\nدریافت نمونه: "+i.PaidText+" دینار\nچاپ رسمی در نسخه آزمایشی فعال نیست.","پیش‌نمایش رسید");
     }
     private void Details_Click(object sender,RoutedEventArgs e)
     {
-        if(sender is Button b&&b.DataContext is Invoice i)MessageBox.Show(this,i.Number+"\n"+i.Customer+"\nمبلغ: "+i.TotalText+"\nدریافت: "+i.PaidText+"\nمانده: "+i.RemainingText,"جزئیات نمونه");
+        if(sender is Button b&&b.DataContext is Invoice i)MessageBox.Show(this,i.Number+"\n"+i.Customer+"\nمبلغ: "+i.TotalText+"\nدریافت: "+i.PaidText+"\nمانده: "+i.RemainingText,liveMode?"جزئیات فاکتور":"جزئیات نمونه");
     }
     internal static void SmokeTest(string? output)
     {

@@ -18,6 +18,16 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Fetch licensed Persian font
+        shell: pwsh
+        run: |
+          $dir = 'AlmasCashierDesktop/Fonts'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $base = 'https://raw.githubusercontent.com/rastikerdar/vazirmatn/v33.003'
+          foreach ($weight in @('Regular','Medium','SemiBold','Bold')) {
+            Invoke-WebRequest "$base/fonts/ttf/Vazirmatn-$weight.ttf" -OutFile "$dir/Vazirmatn-$weight.ttf"
+          }
+          Invoke-WebRequest "$base/OFL.txt" -OutFile "$dir/OFL.txt"
       - name: Publish self-contained x64 app
         shell: pwsh
         run: |
@@ -37,7 +47,7 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/AlmasCashier.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: AlmasCashierDesktop_v0.2.2_Windows_x64
+          name: AlmasCashierDesktop_v0.2.3_Windows_x64
           path: |
             artifacts/installer/*.exe
             artifacts/publish/*.exe
