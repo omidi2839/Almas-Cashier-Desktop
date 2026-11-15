@@ -1,6 +1,12 @@
 name: Build Almas Cashier Windows
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'AlmasCashierDesktop/**'
+      - 'installer/**'
+      - '.github/workflows/windows-release.yml'
   push:
     tags:
       - cashier-v*
@@ -16,6 +22,9 @@ jobs:
         shell: pwsh
         run: |
           dotnet publish AlmasCashierDesktop/AlmasCashierDesktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/publish
+      - name: Run native dashboard smoke checks
+        shell: pwsh
+        run: python tests/native_preview_check.py
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
@@ -25,7 +34,7 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/AlmasCashier.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: AlmasCashierDesktop_v0.1.0_Windows_x64
+          name: AlmasCashierDesktop_v0.2.0_Windows_x64
           path: |
             artifacts/installer/*.exe
             artifacts/publish/*.exe
