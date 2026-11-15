@@ -24,7 +24,10 @@ jobs:
           dotnet publish AlmasCashierDesktop/AlmasCashierDesktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/publish
       - name: Run native dashboard smoke checks
         shell: pwsh
-        run: python tests/native_preview_check.py
+        run: |
+          python tests/native_preview_check.py
+          $p = Start-Process -FilePath (Resolve-Path artifacts/publish/AlmasCashierDesktop.exe) -ArgumentList '--smoke-test' -PassThru -Wait
+          if ($p.ExitCode -ne 0) { if (Test-Path wpf-smoke-error.txt) { Get-Content wpf-smoke-error.txt }; exit 1 }
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
@@ -34,7 +37,7 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/AlmasCashier.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: AlmasCashierDesktop_v0.2.1_Windows_x64
+          name: AlmasCashierDesktop_v0.2.2_Windows_x64
           path: |
             artifacts/installer/*.exe
             artifacts/publish/*.exe

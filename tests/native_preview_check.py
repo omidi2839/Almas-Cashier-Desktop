@@ -1,15 +1,12 @@
 from pathlib import Path
+import xml.etree.ElementTree as ET
 r=Path(__file__).resolve().parents[1]
-s=(r/'AlmasCashierDesktop/AlmasDashboard.cs').read_text(encoding='utf-8')
-p=(r/'AlmasCashierDesktop/Program.cs').read_text(encoding='utf-8')
-assert 'new AlmasDashboard()' in p
-assert 'new CashierWindow()' not in p
-assert 'https://desktop.sejadalmas.iq' in s and 'AllowAutoRedirect=false' in s
-assert 'HealthClient.GetAsync' in s and 'PostAsync' not in s and 'DefaultRequestHeaders.Authorization' not in s
-assert 'DEMO-' in s and 'بدون اثر مالی' in s
-assert '0.2.1' in (r/'installer/AlmasCashier.iss').read_text(encoding='utf-8')
-print('PASS: native launch, preview-only financial data, secure health-only gateway, version')
-
-assert 'ChooseFont()' in s and 'Tahoma' in s
-assert 'SoftGrid' in s and 'SoftButton' in s and 'MetricIcon' in s
-assert 'FaDigits' in s
+x=r/'AlmasCashierDesktop/WpfDashboard.xaml'
+ET.parse(x)
+s=(r/'AlmasCashierDesktop/WpfDashboard.xaml.cs').read_text(encoding='utf-8')
+assert 'UseWPF' in (r/'AlmasCashierDesktop/AlmasCashierDesktop.csproj').read_text()
+assert 'new WpfDashboard()' in (r/'AlmasCashierDesktop/Program.cs').read_text()
+assert 'DEMO-' in s and 'AllowAutoRedirect=false' in s and 'PostAsync' not in s
+assert 'وظایف امروز' not in x.read_text(encoding='utf-8') and 'آخرین فعالیت‌ها' not in x.read_text(encoding='utf-8')
+assert '0.2.2' in (r/'installer/AlmasCashier.iss').read_text()
+print('PASS: WPF, simplified layout, secure preview, version')
