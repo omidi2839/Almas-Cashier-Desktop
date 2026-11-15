@@ -16,11 +16,19 @@ namespace AlmasCashierDesktop;
 // operations are accepted. The legacy WebView remains in source but is not launched.
 internal sealed class AlmasDashboard : Form
 {
-    internal static readonly Color Orange=ColorTranslator.FromHtml("#E87613"), Dark=ColorTranslator.FromHtml("#342A24"),
-        Cream=ColorTranslator.FromHtml("#F7F1EA"), White=ColorTranslator.FromHtml("#FFFCF9"),
+    internal static readonly Color Orange=ColorTranslator.FromHtml("#E8730C"), Dark=ColorTranslator.FromHtml("#342A24"),
+        Cream=ColorTranslator.FromHtml("#F5EFEA"), White=ColorTranslator.FromHtml("#FFFCFA"),
         Line=ColorTranslator.FromHtml("#E9DED2"), Muted=ColorTranslator.FromHtml("#80746B"),
         Green=ColorTranslator.FromHtml("#277D50");
-    private readonly Panel _workspace=new(){Dock=DockStyle.Fill,Padding=new Padding(16),BackColor=Cream};
+    private static readonly string UiFont=ChooseFont();
+    private static string ChooseFont(){
+        using var fonts=new System.Drawing.Text.InstalledFontCollection();
+        var existing=new HashSet<string>(fonts.Families.Select(f=>f.Name),StringComparer.OrdinalIgnoreCase);
+        foreach(var name in new[]{"Vazirmatn","IRANSansX","IRANSans","Tahoma","Segoe UI"})
+            if(existing.Contains(name))return name;
+        return SystemFonts.MessageBoxFont!.Name;
+    }
+    private readonly Panel _workspace=new(){Dock=DockStyle.Fill,Padding=new Padding(12,16,12,14),BackColor=Cream};
     private readonly FlowLayoutPanel _menu=new(){Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true,Padding=new Padding(12,10,8,10)};
     private readonly Label _status=new(){AutoSize=false,TextAlign=ContentAlignment.MiddleCenter,Dock=DockStyle.Fill};
     private readonly Label _profile=new(){AutoSize=false,Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleRight};
@@ -49,10 +57,10 @@ internal sealed class AlmasDashboard : Form
     private readonly HashSet<string> _tasksDone=new();
     private sealed record DemoInvoice(string Number,string Customer,decimal Total,decimal Paid,string Time);
     public AlmasDashboard(){
-        Text="الماس — نسخه ویندوز | پیش‌نمایش 0.2.0";
+        Text="الماس — نسخه ویندوز | پیش‌نمایش 0.2.1";
         Icon=System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         MinimumSize=new Size(1100,690);Size=new Size(1500,900);StartPosition=FormStartPosition.CenterScreen;
-        WindowState=FormWindowState.Maximized;Font=new Font("Segoe UI",10);ForeColor=Dark;BackColor=Cream;
+        WindowState=FormWindowState.Maximized;Font=new Font(UiFont,10.5f);ForeColor=Dark;BackColor=Cream;
         AutoScaleMode=AutoScaleMode.Dpi;
         ReadSettings();BuildShell();Navigate("داشبورد");
         _timer.Tick+=(_,_)=>UpdateClock();_timer.Start();UpdateClock();
@@ -72,9 +80,9 @@ internal sealed class AlmasDashboard : Form
         _gateway=value;SetConnection("آزمایش نشده",Muted);
     }
     private static Label L(string text,int size=10,bool bold=false,Color? color=null,ContentAlignment align=ContentAlignment.MiddleRight)
-        =>new(){Text=text,Font=new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular),ForeColor=color??Dark,AutoSize=false,Dock=DockStyle.Fill,TextAlign=align,RightToLeft=RightToLeft.Yes};
+        =>new(){Text=text,Font=new Font(UiFont,size,bold?FontStyle.Bold:FontStyle.Regular),ForeColor=color??Dark,AutoSize=false,Dock=DockStyle.Fill,TextAlign=align,RightToLeft=RightToLeft.Yes};
     private static Button B(string text,Action action,bool primary=false){
-        var b=new Button{Text=text,Dock=DockStyle.Fill,FlatStyle=FlatStyle.Flat,Cursor=Cursors.Hand,Font=new Font("Segoe UI",11,FontStyle.Bold),BackColor=primary?Orange:White,ForeColor=primary?Color.White:Dark,Margin=new Padding(5),RightToLeft=RightToLeft.Yes};
+        var b=new SoftButton{Text=text,Dock=DockStyle.Fill,FlatStyle=FlatStyle.Flat,Cursor=Cursors.Hand,Font=new Font(UiFont,11,FontStyle.Bold),BackColor=primary?Orange:White,ForeColor=primary?Color.White:Dark,Margin=new Padding(5),RightToLeft=RightToLeft.Yes};
         b.FlatAppearance.BorderColor=primary?Orange:Line;b.Click+=(_,_)=>action();return b;
     }
     private static TableLayoutPanel Grid(int cols,int rows){
@@ -83,28 +91,28 @@ internal sealed class AlmasDashboard : Form
     private static void PercentCols(TableLayoutPanel t,params float[] vals){foreach(var v in vals)t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,v));}
     private static void AbsRows(TableLayoutPanel t,params float[] vals){foreach(var v in vals)t.RowStyles.Add(new RowStyle(SizeType.Absolute,v));}
     private void BuildShell(){
-        var root=Grid(2,2);root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,238));
+        var root=Grid(2,2);root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,84));root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,16));
         root.RowStyles.Add(new RowStyle(SizeType.Percent,100));root.RowStyles.Add(new RowStyle(SizeType.Absolute,34));Controls.Add(root);
         var content=Grid(1,2);content.RowStyles.Add(new RowStyle(SizeType.Absolute,104));content.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         root.Controls.Add(content,0,0);content.Controls.Add(Header(),0,0);content.Controls.Add(_workspace,0,1);
-        var side=Grid(1,3);side.BackColor=White;side.RowStyles.Add(new RowStyle(SizeType.Absolute,106));side.RowStyles.Add(new RowStyle(SizeType.Percent,100));side.RowStyles.Add(new RowStyle(SizeType.Absolute,76));
+        var side=Grid(1,3);side.BackColor=White;side.RowStyles.Add(new RowStyle(SizeType.Absolute,106));side.RowStyles.Add(new RowStyle(SizeType.Percent,100));side.RowStyles.Add(new RowStyle(SizeType.Absolute,98));
         root.Controls.Add(side,1,0);
         var brand=new MotifPanel{Dock=DockStyle.Fill,BackColor=White,Margin=Padding.Empty};
         var bt=Grid(1,2);AbsRows(bt,61,33);bt.Controls.Add(L("◆  الماس",27,true,Orange,ContentAlignment.MiddleCenter),0,0);bt.Controls.Add(L("سیستم فروش و حسابداری",10,false,Muted,ContentAlignment.MiddleCenter),0,1);brand.Controls.Add(bt);side.Controls.Add(brand,0,0);
-        side.Controls.Add(_menu,0,1);var foot=new MotifPanel{Dock=DockStyle.Fill,BackColor=White,Margin=Padding.Empty,Skyline=true};side.Controls.Add(foot,0,2);
-        var bar=Grid(3,1);PercentCols(bar,32,28,40);bar.BackColor=White;bar.Controls.Add(L("نسخه آزمایشی 0.2.0 — بدون ثبت مالی",9,false,Muted,ContentAlignment.MiddleLeft),0,0);bar.Controls.Add(L("شعبه الماس • نجف، عراق",9,false,Muted,ContentAlignment.MiddleCenter),1,0);bar.Controls.Add(_clock,2,0);root.Controls.Add(bar,0,1);root.SetColumnSpan(bar,2);
+        side.Controls.Add(_menu,0,1);_menu.SizeChanged+=(_,_)=>{foreach(var b in _nav.Values)b.Width=Math.Max(130,_menu.ClientSize.Width-24);};var foot=new MotifPanel{Dock=DockStyle.Fill,BackColor=White,Margin=Padding.Empty,Skyline=true};side.Controls.Add(foot,0,2);
+        var bar=Grid(3,1);PercentCols(bar,32,28,40);bar.BackColor=White;bar.Controls.Add(L("نسخه آزمایشی 0.2.1 — بدون ثبت مالی",9,false,Muted,ContentAlignment.MiddleLeft),0,0);bar.Controls.Add(L("شعبه الماس • نجف، عراق",9,false,Muted,ContentAlignment.MiddleCenter),1,0);bar.Controls.Add(_clock,2,0);root.Controls.Add(bar,0,1);root.SetColumnSpan(bar,2);
         BuildMenu();
     }
     private Control Header(){
         var h=new MotifPanel{Dock=DockStyle.Fill,BackColor=White,Margin=Padding.Empty,Skyline=true};
-        var t=Grid(3,1);t.Padding=new Padding(16,12,16,12);PercentCols(t,30,34,36);h.Controls.Add(t);
+        var t=Grid(3,1);t.Padding=new Padding(16,12,16,12);PercentCols(t,30,30,40);h.Controls.Add(t);
         var profile=Grid(1,2);PercentCols(profile,100);AbsRows(profile,35,37);
-        _profile.Font=new Font("Segoe UI",12,FontStyle.Bold);profile.Controls.Add(_profile,0,0);profile.Controls.Add(L("شعبه نجف — داده‌های نمونه",10,false,Muted),0,1);t.Controls.Add(profile,0,0);
+        _profile.Font=new Font(UiFont,12,FontStyle.Bold);profile.Controls.Add(_profile,0,0);profile.Controls.Add(L("شعبه نجف — داده‌های نمونه",10,false,Muted),0,1);t.Controls.Add(profile,0,0);
         var middle=Grid(2,2);PercentCols(middle,49,51);AbsRows(middle,36,36);
         middle.Controls.Add(B("آزمون اتصال",async()=>await CheckGateway()),0,0);middle.Controls.Add(_status,1,0);middle.Controls.Add(L("آفلاین: پیش‌نمایش محلی",10,true,Muted,ContentAlignment.MiddleCenter),0,1);middle.SetColumnSpan(middle.GetControlFromPosition(0,1)!,2);t.Controls.Add(middle,1,0);
         t.Controls.Add(L("نسخه ویندوز الماس",19,true),2,0);_profile.Text="کاربر آزمایشی | "+_role;SetConnection("متصل نیست",Muted);return h;
     }
-    private void SetConnection(string text,Color c){_status.Text="● "+text;_status.ForeColor=c;_status.Font=new Font("Segoe UI",10,FontStyle.Bold);}
+    private void SetConnection(string text,Color c){_status.Text="● "+text;_status.ForeColor=c;_status.Font=new Font(UiFont,10,FontStyle.Bold);}
     private async Task CheckGateway(){
         if(_checking)return;_checking=true;SetConnection("در حال بررسی",Muted);
         try{
@@ -122,10 +130,10 @@ internal sealed class AlmasDashboard : Form
     }
     private void UpdateClock(){_clock.Text=DateTime.Now.ToString("yyyy/MM/dd    HH:mm:ss",CultureInfo.InvariantCulture)+"     ◷";}
     private void BuildMenu(){
-        _menu.Controls.Clear();_nav.Clear();
+        foreach(Control child in _menu.Controls.Cast<Control>().ToArray())child.Dispose();_menu.Controls.Clear();_nav.Clear();
         foreach(var x in MenuItems){
             if(x.Accounting&&_role!="حسابدار")continue;
-            var name=x.Name;var b=B(name+"    "+x.Symbol,()=>Navigate(name));b.Dock=DockStyle.None;b.Width=208;b.Height=46;b.TextAlign=ContentAlignment.MiddleRight;b.Margin=new Padding(0,0,0,5);_menu.Controls.Add(b);_nav[name]=b;
+            var name=x.Name;var b=B(name+"    "+x.Symbol,()=>Navigate(name));b.Dock=DockStyle.None;b.Width=Math.Max(130,_menu.ClientSize.Width-24);b.Height=46;b.TextAlign=ContentAlignment.MiddleRight;b.Margin=new Padding(0,0,0,5);_menu.Controls.Add(b);_nav[name]=b;
         }
         _profile.Text="کاربر آزمایشی | "+_role;
     }
@@ -134,43 +142,55 @@ internal sealed class AlmasDashboard : Form
         foreach(Control child in _workspace.Controls.Cast<Control>().ToArray())child.Dispose();_workspace.Controls.Clear();
         _workspace.Controls.Add(name=="داشبورد"?Dashboard():name=="تنظیمات"?Settings():name=="فاکتورها"?InvoicesPage():SectionPage(name));
     }
-    private static string Money(decimal n)=>n.ToString("N0",CultureInfo.InvariantCulture);
+    private static string FaDigits(string value)=>string.Concat(value.Select(c=>c>='0'&&c<='9'?(char)('۰'+c-'0'):c==','?'٬':c));
+    private static string Money(decimal n)=>FaDigits(n.ToString("N0",CultureInfo.InvariantCulture));
     private static TableLayoutPanel Card(string heading,int rows=2){
-        var grid=Grid(1,rows);grid.BackColor=White;grid.Padding=new Padding(12);grid.Margin=new Padding(5);
+        var grid=new SoftGrid{Dock=DockStyle.Fill,ColumnCount=1,RowCount=rows,BackColor=White,Padding=new Padding(12),Margin=new Padding(6),RightToLeft=RightToLeft.No};
         grid.RowStyles.Add(new RowStyle(SizeType.Absolute,38));
         grid.Controls.Add(L(heading,13,true),0,0);return grid;
     }
-    private Control Metric(string label,string value,string note,Color accent){
-        var t=Grid(1,3);t.BackColor=White;t.Margin=new Padding(5);t.Padding=new Padding(14,9,14,9);AbsRows(t,27,41,23);
-        t.Controls.Add(L(label,11,true,accent),0,0);t.Controls.Add(L(value,21,true),0,1);t.Controls.Add(L(note,9,false,Muted),0,2);return t;
+    private Control Metric(string label,string value,string note,Color accent,string glyph){
+        var t=new SoftGrid{Dock=DockStyle.Fill,ColumnCount=2,RowCount=3,BackColor=White,Margin=new Padding(6),Padding=new Padding(12,10,12,8)};
+        PercentCols(t,25,75);AbsRows(t,29,44,23);
+        t.Controls.Add(new MetricIcon{Dock=DockStyle.Fill,Accent=accent,Glyph=glyph,Margin=new Padding(0,2,4,2)},0,0);
+        t.SetRowSpan(t.GetControlFromPosition(0,0)!,2);
+        t.Controls.Add(L(label,10,true,Dark),1,0);
+        var figure=L(value,18,true);figure.AutoEllipsis=true;t.Controls.Add(figure,1,1);
+        t.Controls.Add(L(note,9,false,Muted),1,2);return t;
     }
     private Control Dashboard(){
-        var t=Grid(2,1);PercentCols(t,28,72);
-        var aside=Grid(1,2);aside.RowStyles.Add(new RowStyle(SizeType.Percent,45));aside.RowStyles.Add(new RowStyle(SizeType.Percent,55));t.Controls.Add(aside,0,0);
+        var t=Grid(2,1);PercentCols(t,29,71);
+        var aside=Grid(1,2);aside.RowStyles.Add(new RowStyle(SizeType.Percent,43));aside.RowStyles.Add(new RowStyle(SizeType.Percent,57));t.Controls.Add(aside,0,0);
         var tasks=Card("وظایف امروز   ☷");tasks.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        var list=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true,Padding=new Padding(4),RightToLeft=RightToLeft.Yes};
+        var list=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,RightToLeft=RightToLeft.Yes,BackColor=White};
         foreach(string task in new[]{"بررسی فاکتورهای باز","کنترل دریافت‌های امروز","آماده‌سازی گزارش روزانه","بررسی وضعیت صندوق"}){
-            var cb=new CheckBox{Text=task,AutoSize=true,Margin=new Padding(6,12,6,5),Checked=_tasksDone.Contains(task)};
+            list.RowStyles.Add(new RowStyle(SizeType.Percent,25));
+            var cb=new CheckBox{Text=task,Dock=DockStyle.Fill,Font=new Font(UiFont,10),Margin=new Padding(8,2,8,2),Checked=_tasksDone.Contains(task),TextAlign=ContentAlignment.MiddleLeft,CheckAlign=ContentAlignment.MiddleLeft};
             cb.CheckedChanged+=(_,_)=>{if(cb.Checked)_tasksDone.Add(task);else _tasksDone.Remove(task);};list.Controls.Add(cb);}
         tasks.Controls.Add(list,0,1);aside.Controls.Add(tasks,0,0);
-        var activity=Card("آخرین فعالیت‌ها   ◷");activity.RowStyles.Add(new RowStyle(SizeType.Percent,100));var events=new ListBox{Dock=DockStyle.Fill,BorderStyle=BorderStyle.None,BackColor=White,ForeColor=Dark,Font=new Font("Segoe UI",10),RightToLeft=RightToLeft.Yes};events.Items.AddRange(_activity.Take(12).Cast<object>().ToArray());activity.Controls.Add(events,0,1);aside.Controls.Add(activity,0,1);
-        var main=Grid(1,3);main.RowStyles.Add(new RowStyle(SizeType.Absolute,126));main.RowStyles.Add(new RowStyle(SizeType.Absolute,68));main.RowStyles.Add(new RowStyle(SizeType.Percent,100));t.Controls.Add(main,1,0);
+        var activity=Card("آخرین فعالیت‌ها   ◷");activity.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+        var events=new ListBox{Dock=DockStyle.Fill,BorderStyle=BorderStyle.None,BackColor=White,ForeColor=Dark,Font=new Font(UiFont,10),RightToLeft=RightToLeft.Yes,DrawMode=DrawMode.OwnerDrawFixed,ItemHeight=43,IntegralHeight=false};
+        events.DrawItem+=(_,e)=>{if(e.Index<0)return;using var bg=new SolidBrush(e.Index%2==0?White:ColorTranslator.FromHtml("#FAF5EF"));e.Graphics.FillRectangle(bg,e.Bounds);TextRenderer.DrawText(e.Graphics,"◷   "+events.Items[e.Index],events.Font,Rectangle.Inflate(e.Bounds,-7,0),Dark,TextFormatFlags.Right|TextFormatFlags.RightToLeft|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);using var pen=new Pen(Line);e.Graphics.DrawLine(pen,e.Bounds.Left,e.Bounds.Bottom-1,e.Bounds.Right,e.Bounds.Bottom-1);};
+        events.Items.AddRange(_activity.Take(12).Cast<object>().ToArray());activity.Controls.Add(events,0,1);aside.Controls.Add(activity,0,1);
+        var main=Grid(1,3);main.RowStyles.Add(new RowStyle(SizeType.Absolute,138));main.RowStyles.Add(new RowStyle(SizeType.Absolute,70));main.RowStyles.Add(new RowStyle(SizeType.Percent,100));t.Controls.Add(main,1,0);
         var metrics=Grid(4,1);PercentCols(metrics,25,25,25,25);
-        metrics.Controls.Add(Metric("فاکتورهای باز",_invoices.Count(x=>x.Total>x.Paid).ToString(),"فاکتور نمونه",Orange),0,0);
-        metrics.Controls.Add(Metric("مانده صندوق","—","بدون اتصال مالی",Muted),1,0);
-        metrics.Controls.Add(Metric("دریافتی امروز",Money(_invoices.Sum(x=>x.Paid)),"دینار — نمونه",Green),2,0);
-        metrics.Controls.Add(Metric("فروش امروز",Money(_invoices.Sum(x=>x.Total)),"دینار — نمونه",Orange),3,0);main.Controls.Add(metrics,0,0);
-        var actions=Grid(3,1);PercentCols(actions,33,33,34);actions.Controls.Add(B("چاپ رسید نمونه",ShowReceipt),0,0);actions.Controls.Add(B("ثبت دریافت نمونه",DemoPayment),1,0);actions.Controls.Add(B("ایجاد فاکتور نمونه",DemoCreate,true),2,0);main.Controls.Add(actions,0,1);
-        var table=Card("آخرین فاکتورها — داده‌های نمونه   ▤",3);table.RowStyles.Add(new RowStyle(SizeType.Absolute,42));table.RowStyles.Add(new RowStyle(SizeType.Percent,100));table.Controls.Add(B("نمایش همه فاکتورها",()=>Navigate("فاکتورها")),0,1);table.Controls.Add(InvoiceTable(_invoices),0,2);main.Controls.Add(table,0,2);
+        metrics.Controls.Add(Metric("فاکتورهای باز",FaDigits(_invoices.Count(x=>x.Total>x.Paid).ToString()),"فاکتور نمونه",Orange,"▤"),0,0);
+        metrics.Controls.Add(Metric("مانده صندوق","—","بدون اتصال مالی",ColorTranslator.FromHtml("#91824A"),"▣"),1,0);
+        metrics.Controls.Add(Metric("دریافتی امروز",Money(_invoices.Sum(x=>x.Paid)),"دینار — نمونه",Green,"≋"),2,0);
+        metrics.Controls.Add(Metric("فروش امروز",Money(_invoices.Sum(x=>x.Total)),"دینار — نمونه",Orange,"＋"),3,0);main.Controls.Add(metrics,0,0);
+        var actions=Grid(3,1);PercentCols(actions,33,33,34);actions.Controls.Add(B("چاپ رسید نمونه  ▤",ShowReceipt),0,0);actions.Controls.Add(B("ثبت دریافت نمونه  ↓",DemoPayment),1,0);actions.Controls.Add(B("ایجاد فاکتور نمونه  ＋",DemoCreate,true),2,0);main.Controls.Add(actions,0,1);
+        var table=new SoftGrid{Dock=DockStyle.Fill,ColumnCount=1,RowCount=2,BackColor=White,Padding=new Padding(10),Margin=new Padding(6)};table.RowStyles.Add(new RowStyle(SizeType.Absolute,56));table.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+        var head=Grid(2,1);PercentCols(head,36,64);head.Controls.Add(B("نمایش همه فاکتورها",()=>Navigate("فاکتورها")),0,0);head.Controls.Add(L("آخرین فاکتورها — نمونه",13,true),1,0);table.Controls.Add(head,0,0);table.Controls.Add(InvoiceTable(_invoices),0,1);main.Controls.Add(table,0,2);
         return t;
     }
     private DataGridView InvoiceTable(IEnumerable<DemoInvoice> rows){
-        var g=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill,BackgroundColor=White,BorderStyle=BorderStyle.None,CellBorderStyle=DataGridViewCellBorderStyle.SingleHorizontal,RightToLeft=RightToLeft.Yes,SelectionMode=DataGridViewSelectionMode.FullRowSelect,MultiSelect=false,EnableHeadersVisualStyles=false,ColumnHeadersHeight=35,RowTemplate={Height=41}};
-        g.ColumnHeadersDefaultCellStyle=new DataGridViewCellStyle{BackColor=ColorTranslator.FromHtml("#F2E5D8"),ForeColor=Dark,Font=new Font("Segoe UI",10,FontStyle.Bold),Alignment=DataGridViewContentAlignment.MiddleRight};
-        g.DefaultCellStyle=new DataGridViewCellStyle{BackColor=White,ForeColor=Dark,SelectionBackColor=ColorTranslator.FromHtml("#F8DFC6"),SelectionForeColor=Dark,Alignment=DataGridViewContentAlignment.MiddleRight};g.GridColor=Line;
+        var g=new DataGridView{Dock=DockStyle.Fill,ReadOnly=true,AllowUserToAddRows=false,AllowUserToDeleteRows=false,RowHeadersVisible=false,AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill,BackgroundColor=White,BorderStyle=BorderStyle.None,CellBorderStyle=DataGridViewCellBorderStyle.SingleHorizontal,RightToLeft=RightToLeft.Yes,SelectionMode=DataGridViewSelectionMode.FullRowSelect,MultiSelect=false,EnableHeadersVisualStyles=false,ColumnHeadersHeight=39,RowTemplate={Height=48}};
+        g.ColumnHeadersDefaultCellStyle=new DataGridViewCellStyle{BackColor=ColorTranslator.FromHtml("#F2E5D8"),ForeColor=Dark,Font=new Font(UiFont,10,FontStyle.Bold),Alignment=DataGridViewContentAlignment.MiddleRight};
+        g.DefaultCellStyle=new DataGridViewCellStyle{BackColor=White,ForeColor=Dark,SelectionBackColor=ColorTranslator.FromHtml("#F8DFC6"),SelectionForeColor=Dark,Alignment=DataGridViewContentAlignment.MiddleRight};g.GridColor=Line;g.DefaultCellStyle.Font=new Font(UiFont,10);g.AlternatingRowsDefaultCellStyle.BackColor=ColorTranslator.FromHtml("#FBF7F3");
         foreach(var name in new[]{"شماره","مشتری","مبلغ","پرداخت","وضعیت","زمان"})g.Columns.Add(name,name);
         g.Columns[1].FillWeight=155;g.Columns[2].FillWeight=115;g.Columns[3].FillWeight=115;g.Columns[5].FillWeight=65;
-        foreach(var x in rows){var i=g.Rows.Add(x.Number,x.Customer,Money(x.Total),Money(x.Paid),x.Paid>=x.Total?"تسویه شده":x.Paid>0?"پرداخت جزئی":"باز",x.Time);g.Rows[i].Cells[4].Style.ForeColor=x.Paid>=x.Total?Green:Orange;}
+        foreach(var x in rows){var i=g.Rows.Add(x.Number,x.Customer,Money(x.Total),Money(x.Paid),x.Paid>=x.Total?"تسویه شده":x.Paid>0?"پرداخت جزئی":"باز",x.Time);g.Rows[i].Cells[4].Style.ForeColor=x.Paid>=x.Total?Green:x.Paid>0?ColorTranslator.FromHtml("#A56B21"):ColorTranslator.FromHtml("#367CB2");g.Rows[i].Cells[4].Style.BackColor=x.Paid>=x.Total?ColorTranslator.FromHtml("#E8F4E3"):x.Paid>0?ColorTranslator.FromHtml("#FFF0D6"):ColorTranslator.FromHtml("#E8F2F9");}
+        g.ClearSelection();
         return g;
     }
     private Control InvoicesPage(){
@@ -213,6 +233,26 @@ internal sealed class AlmasDashboard : Form
         t.Controls.Add(L("مبلغ دریافت نمونه"),0,2);var money=new NumericUpDown{Dock=DockStyle.Fill,Minimum=1,Maximum=open[0].Total-open[0].Paid,Value=open[0].Total-open[0].Paid,ThousandsSeparator=true};t.Controls.Add(money,0,3);select.SelectedIndexChanged+=(_,_)=>{var x=open[select.SelectedIndex];money.Maximum=x.Total-x.Paid;money.Value=money.Maximum;};t.Controls.Add(B("ثبت نمونه",()=>{var x=open[select.SelectedIndex];var i=_invoices.IndexOf(x);_invoices[i]=x with{Paid=x.Paid+money.Value};_activity.Insert(0,"دریافت نمونه ثبت شد");f.DialogResult=DialogResult.OK;},true),0,4);if(f.ShowDialog(this)==DialogResult.OK)Navigate(_section);
     }
     private void ShowReceipt(){var x=_invoices.First();MessageBox.Show("رسید نمونه — فاقد اعتبار مالی\n\n"+x.Number+"\n"+x.Customer+"\nمبلغ دریافت نمونه: "+Money(x.Paid)+" دینار\n\nچاپ عملیاتی در این نسخه فعال نیست.","پیش‌نمایش رسید");}
+    private static GraphicsPath Rounded(Rectangle r,int radius){
+        var p=new GraphicsPath();int d=Math.Min(radius*2,Math.Min(r.Width,r.Height));
+        if(d<2){p.AddRectangle(r);return p;}
+        p.AddArc(r.Left,r.Top,d,d,180,90);p.AddArc(r.Right-d,r.Top,d,d,270,90);
+        p.AddArc(r.Right-d,r.Bottom-d,d,d,0,90);p.AddArc(r.Left,r.Bottom-d,d,d,90,90);p.CloseFigure();return p;
+    }
+    private sealed class SoftGrid:TableLayoutPanel{
+        public SoftGrid(){DoubleBuffered=true;}
+        protected override void OnResize(EventArgs e){base.OnResize(e);if(Width<2||Height<2)return;using var p=Rounded(new Rectangle(0,0,Width,Height),15);var old=Region;Region=new Region(p);old?.Dispose();}
+        protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);if(Width<3||Height<3)return;e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;using var p=Rounded(new Rectangle(1,1,Width-2,Height-2),14);using var pen=new Pen(Line,1);e.Graphics.DrawPath(pen,p);}
+    }
+    private sealed class SoftButton:Button{
+        protected override void OnResize(EventArgs e){base.OnResize(e);if(Width<2||Height<2)return;using var p=Rounded(new Rectangle(0,0,Width,Height),10);var old=Region;Region=new Region(p);old?.Dispose();}
+    }
+    private sealed class MetricIcon:Control{
+        public Color Accent{get;set;}=Orange;
+        public string Glyph{get;set;}="+";
+        public MetricIcon(){SetStyle(ControlStyles.OptimizedDoubleBuffer|ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.SupportsTransparentBackColor,true);BackColor=Color.Transparent;}
+        protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;int d=Math.Min(44,Math.Min(Width-2,Height-2));if(d<5)return;var r=new Rectangle((Width-d)/2,8,d,d);using var b=new SolidBrush(Color.FromArgb(25,Accent));e.Graphics.FillEllipse(b,r);using var font=new Font("Segoe UI Symbol",16,FontStyle.Bold);TextRenderer.DrawText(e.Graphics,Glyph,font,r,Accent,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter);}
+    }
     // Restrained line-art derived from Iraqi geometric ornament and palm silhouettes.
     private sealed class MotifPanel:Panel{
         public bool Skyline{get;set;}

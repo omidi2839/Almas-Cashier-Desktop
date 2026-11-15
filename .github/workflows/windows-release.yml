@@ -34,7 +34,7 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/AlmasCashier.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: AlmasCashierDesktop_v0.2.0_Windows_x64
+          name: AlmasCashierDesktop_v0.2.1_Windows_x64
           path: |
             artifacts/installer/*.exe
             artifacts/publish/*.exe
