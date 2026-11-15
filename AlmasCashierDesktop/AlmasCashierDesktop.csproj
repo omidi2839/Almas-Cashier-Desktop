@@ -12,6 +12,6 @@
     <ApplicationIcon>..\assets\almas_cashier.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="AlmasDashboard.cs;CashierWindow.cs" />
+    <Compile Remove="AlmasDashboard.cs;CashierWindow.cs;ServerDialog.cs" />
   </ItemGroup>
 </Project>
