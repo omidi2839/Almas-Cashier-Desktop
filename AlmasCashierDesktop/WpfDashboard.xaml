@@ -1,7 +1,7 @@
 <Window x:Class="AlmasCashierDesktop.WpfDashboard"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="الماس | فروش و حسابداری — 0.2.3" Width="1440" Height="850" MinWidth="980" MinHeight="620"
+ Title="الماس | فروش و حسابداری — 0.2.4" Width="1440" Height="850" MinWidth="980" MinHeight="620"
  WindowStartupLocation="CenterScreen" WindowState="Maximized" Background="#F6F2EE"
  FontFamily="./Fonts/#Vazirmatn, Tahoma, Segoe UI" FontSize="12" Foreground="#302B28"
  FlowDirection="RightToLeft" Language="fa-IR" UseLayoutRounding="True" SnapsToDevicePixels="True"
@@ -163,6 +163,7 @@
      </Grid>
     </Border>
    </Grid>
+   <ContentControl Grid.Row="2" x:Name="InvoiceWorkspace" Visibility="Collapsed"/>
    <Border Grid.Row="2" x:Name="OtherView" Style="{StaticResource Card}" Visibility="Collapsed" Padding="22">
     <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="OtherContent"/></ScrollViewer>
    </Border>
@@ -171,7 +172,7 @@
    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <TextBlock x:Name="ClockLabel" FontSize="10" Foreground="{StaticResource Muted}"/>
     <TextBlock Grid.Column="1" Text="نجف، عراق" HorizontalAlignment="Center" FontSize="10" Foreground="{StaticResource Muted}"/>
-    <TextBlock x:Name="FooterMode" Grid.Column="2" Text="0.2.3  |  پیش‌نمایش محلی WPF" HorizontalAlignment="Left" FontSize="10" Foreground="{StaticResource Muted}"/>
+    <TextBlock x:Name="FooterMode" Grid.Column="2" Text="0.2.4  |  پیش‌نمایش محلی WPF" HorizontalAlignment="Left" FontSize="10" Foreground="{StaticResource Muted}"/>
    </Grid>
   </Border>
  </Grid>

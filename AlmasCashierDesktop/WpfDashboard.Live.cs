@@ -46,7 +46,7 @@ public partial class WpfDashboard
     {
         ModeLabel.Text=active?"نجف • اطلاعات سامانه • فقط مشاهده":"شعبه نجف  •  محیط آزمایشی";
         TableNote.Text=active?"اطلاعات دریافت‌شده از سرور":"داده‌های نمونه • بدون اثر مالی";
-        FooterMode.Text=active?"0.2.3 | اتصال خواندنی WPF":"0.2.3 | پیش‌نمایش محلی WPF";
+        FooterMode.Text=active?"0.2.4 | اتصال خواندنی WPF":"0.2.4 | پیش‌نمایش محلی WPF";
         ConnectButton.Content=active?"به‌روزرسانی":"اتصال به سامانه";
         CreateButton.IsEnabled=PayButton.IsEnabled=ReceiptButton.IsEnabled=!active;
         CreateButton.ToolTip=PayButton.ToolTip=ReceiptButton.ToolTip=active?"ثبت مالی در این نسخه فعال نیست":null;
@@ -131,6 +131,7 @@ public partial class WpfDashboard
     private async void OpenLive(string name)
     {
         if(!liveMode)return;
+        InvoiceWorkspace.Visibility=Visibility.Collapsed;
         section=name;PageTitle.Text=name;foreach(var pair in nav)pair.Value.Tag=pair.Key==name?"active":null;
         int g=++generation;
         var item=liveMenu.FirstOrDefault(x=>x.Label==name);
