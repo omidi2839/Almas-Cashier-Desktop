@@ -1,6 +1,12 @@
 name: Build Almas Cashier Windows
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'AlmasCashierDesktop/**'
+      - 'installer/**'
+      - '.github/workflows/windows-release.yml'
   push:
     tags:
       - cashier-v*
@@ -12,10 +18,26 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Fetch licensed Persian font
+        shell: pwsh
+        run: |
+          $dir = 'AlmasCashierDesktop/Fonts'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $base = 'https://raw.githubusercontent.com/rastikerdar/vazirmatn/v33.003'
+          foreach ($weight in @('Regular','Medium','SemiBold','Bold')) {
+            Invoke-WebRequest "$base/fonts/ttf/Vazirmatn-$weight.ttf" -OutFile "$dir/Vazirmatn-$weight.ttf"
+          }
+          Invoke-WebRequest "$base/OFL.txt" -OutFile "$dir/OFL.txt"
       - name: Publish self-contained x64 app
         shell: pwsh
         run: |
           dotnet publish AlmasCashierDesktop/AlmasCashierDesktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/publish
+      - name: Run native dashboard smoke checks
+        shell: pwsh
+        run: |
+          python tests/native_preview_check.py
+          $p = Start-Process -FilePath (Resolve-Path artifacts/publish/AlmasCashierDesktop.exe) -ArgumentList '--smoke-test' -PassThru -Wait
+          if ($p.ExitCode -ne 0) { if (Test-Path wpf-smoke-error.txt) { Get-Content wpf-smoke-error.txt }; exit 1 }
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --yes --no-progress
@@ -25,7 +47,7 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/AlmasCashier.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: AlmasCashierDesktop_v0.1.0_Windows_x64
+          name: AlmasCashierDesktop_v0.2.4_Windows_x64
           path: |
             artifacts/installer/*.exe
             artifacts/publish/*.exe
