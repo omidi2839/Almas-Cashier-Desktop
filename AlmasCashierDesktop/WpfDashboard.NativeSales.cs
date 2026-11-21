@@ -235,6 +235,7 @@ public partial class WpfDashboard
             nativeSeller.SelectedIndex = 0;
             nativeType.SelectedIndex = 0;
             nativeCreate.IsEnabled = nativeCanCreate;
+            CreateButton.IsEnabled = nativeCanCreate;
             await LoadNativeInvoicePageAsync();
         }
         catch (Exception ex)
