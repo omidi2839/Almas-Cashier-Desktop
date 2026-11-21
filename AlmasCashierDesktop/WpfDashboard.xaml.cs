@@ -193,7 +193,11 @@ public partial class WpfDashboard : Window
     }
     private static TextBlock FieldLabel(string s)=>new(){Text=s,Margin=new Thickness(0,12,0,6)};
     private static bool ParseAmount(string s,out decimal v)=>decimal.TryParse(Normalize(s).Replace("٬","").Replace(",",""),NumberStyles.Number,CultureInfo.InvariantCulture,out v)&&v>0&&v<=999999999;
-    private void Create_Click(object sender,RoutedEventArgs e)=>CreateDemo("فاکتور نمونه");
+    private void Create_Click(object sender,RoutedEventArgs e)
+    {
+        if(liveMode){OpenNativeInvoiceCreate();return;}
+        CreateDemo("فاکتور نمونه");
+    }
     private void CreateDemo(string title)
     {
         if(liveMode)return;
@@ -230,7 +234,10 @@ public partial class WpfDashboard : Window
     private void Details_Click(object sender,RoutedEventArgs e)
     {
         if(sender is Button b&&b.DataContext is Invoice i&&!liveMode){ShowPreviewDetails(i);return;}
-        if(sender is Button bb&&bb.DataContext is Invoice i2)MessageBox.Show(this,i2.Number+"\n"+i2.Customer+"\nمبلغ: "+i2.TotalText+"\nدریافت: "+i2.PaidText+"\nمانده: "+i2.RemainingText,liveMode?"جزئیات فاکتور":"جزئیات نمونه");
+        if(sender is Button bb&&bb.DataContext is Invoice i2&&liveMode)
+        {
+            _=OpenNativeDetailByNumberAsync(i2.Number);
+        }
     }
     internal static void SmokeTest(string? output)
     {
