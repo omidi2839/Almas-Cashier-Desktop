@@ -36,11 +36,29 @@ public partial class WpfDashboard
         public bool Reserved { get; init; }
         public bool Delivered { get; init; }
         public bool Returned { get; init; }
+        public bool WarehouseExit { get; init; }
+        public bool ReservationConflict { get; init; }
+        public bool MissingReservation { get; init; }
+        public bool InvalidDate { get; init; }
         public string TotalText => Money(Total);
         public string PaidText => Money(Paid);
         public string BalanceText => Money(Math.Max(0, Total - Paid));
-        public string Flow => Returned ? "مرجوعی" : Delivered ? "تحویل‌شده" :
-            Reserved ? "رزرو فعال" : "—";
+        public string Flow
+        {
+            get
+            {
+                var states = new[]
+                {
+                    Returned ? "مرجوعی" : "", Delivered ? "تحویل مشتری" : "",
+                    WarehouseExit ? "خروج انبار" : "", Reserved ? "رزرو فعال" : "",
+                    ReservationConflict ? "مغایرت رزرو" : "",
+                    MissingReservation ? "رزرو ثبت‌نشده" : "",
+                    InvalidDate ? "تاریخ نامعتبر" : ""
+                };
+                var result = string.Join(" | ", states.Where(x => x != ""));
+                return result.Length > 0 ? result : "—";
+            }
+        }
     }
 
     private sealed class NativeDraftLine
@@ -61,6 +79,8 @@ public partial class WpfDashboard
     private ComboBox? nativeSeller;
     private ComboBox? nativeType;
     private ComboBox? nativePer;
+    private ComboBox? nativeSort;
+    private ComboBox? nativeSortDirection;
     private TextBlock? nativeCount;
     private TextBlock? nativeNotice;
     private Button? nativePrevious;
@@ -121,9 +141,15 @@ public partial class WpfDashboard
         nativeStatus = new ComboBox { MinWidth = 140, ItemsSource = new[]
         {
             "همه وضعیت‌ها", "پرداخت‌شده", "پرداخت‌نشده", "پرداخت جزئی",
-            "رزرو شده", "تحویل مشتری", "مرجوعی", "لغوشده"
+            "رزرو شده", "تحویل مشتری", "مرجوعی", "لغوشده", "تاریخ نامعتبر"
         }, SelectedIndex = 0 };
         nativePer = new ComboBox { MinWidth = 85, ItemsSource = new[] { "10", "20", "50", "100" }, SelectedIndex = 1 };
+        nativeSort = new ComboBox { MinWidth = 140, ItemsSource = new[]
+        {
+            "جدیدترین ثبت", "شماره فاکتور", "تاریخ", "مشتری", "کارشناس", "مبلغ کل", "دریافتی", "وضعیت"
+        }, SelectedIndex = 0 };
+        nativeSortDirection = new ComboBox { MinWidth = 100,
+            ItemsSource = new[] { "نزولی", "صعودی" }, SelectedIndex = 0 };
         filters.Children.Add(NativeField("شماره / مشتری", nativeSearch, 210));
         filters.Children.Add(NativeField("از تاریخ", nativeFrom, 124));
         filters.Children.Add(NativeField("تا تاریخ", nativeTo, 124));
@@ -131,6 +157,8 @@ public partial class WpfDashboard
         filters.Children.Add(NativeField("نوع فروش", nativeType, 155));
         filters.Children.Add(NativeField("وضعیت", nativeStatus, 152));
         filters.Children.Add(NativeField("تعداد ردیف", nativePer, 100));
+        filters.Children.Add(NativeField("مرتب‌سازی کل نتایج", nativeSort, 155));
+        filters.Children.Add(NativeField("جهت", nativeSortDirection, 105));
         filters.Children.Add(NativeButton("جستجو", () => { nativePage = 1; _ = LoadNativeInvoicePageAsync(); }, true));
         filters.Children.Add(NativeButton("حذف فیلتر", () =>
         {
@@ -138,6 +166,7 @@ public partial class WpfDashboard
             nativeFrom!.SelectedDate = null; nativeTo!.SelectedDate = null;
             nativeSeller!.SelectedIndex = 0; nativeType!.SelectedIndex = 0;
             nativeStatus!.SelectedIndex = 0; nativePer!.SelectedIndex = 1;
+            nativeSort!.SelectedIndex = 0; nativeSortDirection!.SelectedIndex = 0;
             nativePage = 1; _ = LoadNativeInvoicePageAsync();
         }));
         Header(NativePanel(filters));
@@ -254,7 +283,7 @@ public partial class WpfDashboard
     {
         "پرداخت‌شده" => "paid", "پرداخت‌نشده" => "unpaid", "پرداخت جزئی" => "partial",
         "رزرو شده" => "reserved", "تحویل مشتری" => "delivered", "مرجوعی" => "returned",
-        "لغوشده" => "cancelled", _ => ""
+        "لغوشده" => "cancelled", "تاریخ نامعتبر" => "invalid", _ => ""
     };
 
     private async Task LoadNativeInvoicePageAsync()
@@ -264,7 +293,11 @@ public partial class WpfDashboard
         try
         {
             var per = nativePer?.SelectedItem?.ToString() ?? "20";
+            var sort = new [] { "id", "number", "date", "customer", "seller", "total", "paid", "status" };
+            var sortKey = sort[Math.Max(0, Math.Min(sort.Length - 1, nativeSort?.SelectedIndex ?? 0))];
+            var sortDirection = nativeSortDirection?.SelectedIndex == 1 ? "asc" : "desc";
             var query = "invoices?page=" + nativePage +
+                "&sort=" + sortKey + "&dir=" + sortDirection +
                 "&per=" + Uri.EscapeDataString(per) +
                 "&q=" + Uri.EscapeDataString((nativeSearch?.Text ?? "").Trim()) +
                 "&from=" + Uri.EscapeDataString(DateValue(nativeFrom)) +
@@ -286,7 +319,11 @@ public partial class WpfDashboard
                     CurrencyId = Number(x, "currency_id"),
                     Reserved = x.TryGetProperty("reserved", out var r) && r.ValueKind == JsonValueKind.True,
                     Delivered = x.TryGetProperty("delivered", out var d) && d.ValueKind == JsonValueKind.True,
-                    Returned = x.TryGetProperty("returned", out var ret) && ret.ValueKind == JsonValueKind.True
+                    Returned = x.TryGetProperty("returned", out var ret) && ret.ValueKind == JsonValueKind.True,
+                    WarehouseExit = x.TryGetProperty("warehouse_exit", out var wh) && wh.ValueKind == JsonValueKind.True,
+                    ReservationConflict = x.TryGetProperty("reservation_conflict", out var rc) && rc.ValueKind == JsonValueKind.True,
+                    MissingReservation = x.TryGetProperty("missing_reservation", out var mr) && mr.ValueKind == JsonValueKind.True,
+                    InvalidDate = x.TryGetProperty("invalid_date", out var iv) && iv.ValueKind == JsonValueKind.True
                 });
             nativePage = Math.Max(1, Number(response, "page"));
             nativePages = Math.Max(1, Number(response, "pages"));
