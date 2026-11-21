@@ -46,9 +46,12 @@ public partial class WpfDashboard
     {
         ModeLabel.Text=active?"نجف • اطلاعات سامانه • فقط مشاهده":"شعبه نجف  •  محیط آزمایشی";
         TableNote.Text=active?"اطلاعات دریافت‌شده از سرور":"داده‌های نمونه • بدون اثر مالی";
-        FooterMode.Text=active?"0.2.5 | WPF + پنل عملیاتی امن":"0.2.5 | پیش‌نمایش محلی WPF";
+        FooterMode.Text=active?"0.2.6 | WPF + بررسی دقیق HTTPS پنل":"0.2.6 | پیش‌نمایش محلی WPF";
         ConnectButton.Content=active?"به‌روزرسانی":"اتصال به سامانه";
         CreateButton.IsEnabled=PayButton.IsEnabled=ReceiptButton.IsEnabled=!active||liveMenu.Any(x=>x.Id=="invoices");
+        CreateButton.Content=active?"پنل فاکتورها":"＋ ایجاد فاکتور";
+        PayButton.Content=active?"فرم دریافت در وب":"ثبت دریافت";
+        ReceiptButton.Content=active?"چاپ از پنل وب":"چاپ رسید";
         CreateButton.ToolTip=PayButton.ToolTip=ReceiptButton.ToolTip=active?"ورود به فرم عملیاتی معتبر سامانه با ورود مستقل وب":null;
     }
     private void LiveSettings()
@@ -76,7 +79,7 @@ public partial class WpfDashboard
             finally{busy=false;button.IsEnabled=!liveMode;}
         };
         OtherContent.Children.Add(button);
-        OtherContent.Children.Add(FieldLabel("نشانی HTTPS پنل عملیاتی (ورود مستقل وب)"));
+        OtherContent.Children.Add(FieldLabel("نشانی واقعی HTTPS پنل عملیاتی (همان دامنه‌ای که ورود مدیریت آن در مرورگر باز می‌شود)"));
         var portalInput=new TextBox{Text=portalBase,FlowDirection=FlowDirection.LeftToRight,MinWidth=330,MaxWidth=520,HorizontalAlignment=HorizontalAlignment.Right};
         OtherContent.Children.Add(portalInput);
         OtherContent.Children.Add(ActionButton("ذخیره نشانی پنل عملیاتی",()=>{
@@ -178,6 +181,7 @@ public partial class WpfDashboard
         foreach(var r in data.GetProperty("rows").EnumerateArray()){
             var vals=r.EnumerateArray().Select(x=>(object)(x.ValueKind==JsonValueKind.String?x.GetString()??"":x.ToString())).ToArray();if(vals.Length==names.Length)table.Rows.Add(vals);
         }
+        if(table.Rows.Count==0)OtherContent.Children.Add(new TextBlock{Text="برای این بخش رکوردی در فهرست خواندنی بازگردانده نشد. برای مشاهده و عملیات کامل، ابتدا نشانی HTTPS پنل را در تنظیمات بررسی کنید.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,6,0,10)});
         OtherContent.Children.Add(new DataGrid{ItemsSource=table.DefaultView,IsReadOnly=true,CanUserAddRows=false,CanUserDeleteRows=false,AutoGenerateColumns=true,CanUserSortColumns=true,HeadersVisibility=DataGridHeadersVisibility.Column,RowHeight=42,MaxHeight=510});
     }
     private async Task ReloadLive()
