@@ -46,10 +46,10 @@ public partial class WpfDashboard
     {
         ModeLabel.Text=active?"نجف • اطلاعات سامانه • فقط مشاهده":"شعبه نجف  •  محیط آزمایشی";
         TableNote.Text=active?"اطلاعات دریافت‌شده از سرور":"داده‌های نمونه • بدون اثر مالی";
-        FooterMode.Text=active?"0.2.4 | اتصال خواندنی WPF":"0.2.4 | پیش‌نمایش محلی WPF";
+        FooterMode.Text=active?"0.2.5 | WPF + پنل عملیاتی امن":"0.2.5 | پیش‌نمایش محلی WPF";
         ConnectButton.Content=active?"به‌روزرسانی":"اتصال به سامانه";
-        CreateButton.IsEnabled=PayButton.IsEnabled=ReceiptButton.IsEnabled=!active;
-        CreateButton.ToolTip=PayButton.ToolTip=ReceiptButton.ToolTip=active?"ثبت مالی در این نسخه فعال نیست":null;
+        CreateButton.IsEnabled=PayButton.IsEnabled=ReceiptButton.IsEnabled=!active||liveMenu.Any(x=>x.Id=="invoices");
+        CreateButton.ToolTip=PayButton.ToolTip=ReceiptButton.ToolTip=active?"ورود به فرم عملیاتی معتبر سامانه با ورود مستقل وب":null;
     }
     private void LiveSettings()
     {
@@ -69,20 +69,33 @@ public partial class WpfDashboard
                 var data=await ReadApi(h,k,"snapshot");
                 if(g!=generation)return;
                 ApplySnapshot(data);liveMode=true;token=k;liveGateway=h;gateway=h;key.Clear();
-                try{Directory.CreateDirectory(CashierConfig.Home);File.WriteAllText(SettingsFile,JsonSerializer.Serialize(new Dictionary<string,string>{{"gateway",gateway}}));}catch{}
+                try{Directory.CreateDirectory(CashierConfig.Home);File.WriteAllText(SettingsFile,JsonSerializer.Serialize(new Dictionary<string,string>{{"gateway",gateway},{"portal",portalBase}}));}catch{}
                 SetLiveAppearance(true);BuildMenu();SetConnection("متصل",true);OpenLive("داشبورد");
             }catch(InvalidOperationException ex){SetConnection("اتصال ناموفق",false);MessageBox.Show(this,ex.Message);}
             catch{SetConnection("اتصال ناموفق",false);MessageBox.Show(this,"درگاه پاسخ نداد. نشانی، گواهی SSL و نصب ماژول را بررسی کنید.");}
             finally{busy=false;button.IsEnabled=!liveMode;}
         };
         OtherContent.Children.Add(button);
+        OtherContent.Children.Add(FieldLabel("نشانی HTTPS پنل عملیاتی (ورود مستقل وب)"));
+        var portalInput=new TextBox{Text=portalBase,FlowDirection=FlowDirection.LeftToRight,MinWidth=330,MaxWidth=520,HorizontalAlignment=HorizontalAlignment.Right};
+        OtherContent.Children.Add(portalInput);
+        OtherContent.Children.Add(ActionButton("ذخیره نشانی پنل عملیاتی",()=>{
+            var address=portalInput.Text.Trim();
+            if(!ValidGateway(address)){MessageBox.Show(this,"نشانی باید HTTPS و بدون مسیر یا پارامتر باشد.");return;}
+            portalBase=address;
+            try{
+                Directory.CreateDirectory(CashierConfig.Home);
+                File.WriteAllText(SettingsFile,JsonSerializer.Serialize(new Dictionary<string,string>{{"gateway",gateway},{"portal",portalBase}}));
+                MessageBox.Show(this,"نشانی امن پنل ذخیره شد. ورود به پنل وب مستقل از کلید دستگاه است.");
+            }catch{MessageBox.Show(this,"ذخیره تنظیمات پنل ناموفق بود.");}
+        }));
         if(liveMode)OtherContent.Children.Add(ActionButton("قطع اتصال و پاک‌کردن داده‌ها",DisconnectLive));
         else{
             OtherContent.Children.Add(new TextBlock{Text="نمای آزمایشی (جدا از اطلاعات واقعی)",FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,22,0,6)});
             OtherContent.Children.Add(ActionButton("نمای صندوقدار",()=>ChangeRole("صندوقدار")));
             OtherContent.Children.Add(ActionButton("نمای حسابدار",()=>ChangeRole("حسابدار")));
         }
-        OtherContent.Children.Add(new TextBlock{Text="کلید فقط در حافظه همین اجرا نگهداری می‌شود. اطلاعات واقعی روی رایانه ذخیره نمی‌شود. این نسخه فقط برای مشاهده است.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,16,0,0)});
+        OtherContent.Children.Add(new TextBlock{Text="کلید دستگاه فقط در حافظه برنامه است. فهرست‌های WPF فقط‌خواندنی‌اند؛ عملیات ثبت در پنل امن وب با ورود جداگانه و کنترل کامل مجوزها انجام می‌شود. نشست وب در پروفایل برنامه نگهداری می‌شود تا زمان خروج یا پاک‌سازی.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,16,0,0)});
     }
     private void ApplySnapshot(JsonElement data)
     {
@@ -94,6 +107,7 @@ public partial class WpfDashboard
     }
     private void DisconnectLive()
     {
+        ClearOperationsOnDisconnect();
         ++generation;liveMode=false;token=liveGateway="";liveInvoices.Clear();liveMenu.Clear();liveData=default;
         InvoicesGrid.ItemsSource=null;Metrics.ItemsSource=null;OtherContent.Children.Clear();
         SetLiveAppearance(false);SetConnection("متصل نیست",false);BuildMenu();Navigate("تنظیمات");
@@ -135,6 +149,7 @@ public partial class WpfDashboard
         section=name;PageTitle.Text=name;foreach(var pair in nav)pair.Value.Tag=pair.Key==name?"active":null;
         int g=++generation;
         var item=liveMenu.FirstOrDefault(x=>x.Label==name);
+        if(item.Id?.StartsWith("warehouse_",StringComparison.Ordinal)==true){ShowOperations(name);return;}
         bool dash=name=="داشبورد"||item.Id=="invoices";
         DashboardView.Visibility=dash?Visibility.Visible:Visibility.Collapsed;OtherView.Visibility=dash?Visibility.Collapsed:Visibility.Visible;
         OtherContent.Children.Clear();
@@ -143,7 +158,13 @@ public partial class WpfDashboard
         OtherContent.Children.Add(new TextBlock{Text="در حال دریافت اطلاعات..."});
         try{
             var data=await ReadApi(liveGateway,token,"section?id="+Uri.EscapeDataString(item.Id));
-            if(!liveMode||g!=generation||section!=name)return;RenderSection(data);SetConnection("متصل",true);
+            if(!liveMode||g!=generation||section!=name)return;
+            RenderSection(data);
+            if(OperationalPaths.ContainsKey(name)){
+                OtherContent.Children.Insert(0,ActionButton("باز کردن فرم عملیاتی واقعی",()=>ShowOperations(name),true));
+                OtherContent.Children.Insert(1,new TextBlock{Text="عملیات ثبت و ویرایش با ورود مستقل به پنل HTTPS و مجوزهای خود سامانه انجام می‌شوند.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)});
+            }
+            SetConnection("متصل",true);
         }catch{
             if(!liveMode||g!=generation)return;OtherContent.Children.Clear();OtherContent.Children.Add(new TextBlock{Text="اطلاعات این بخش دریافت نشد. اتصال و مجوزها را بررسی کنید."});SetConnection("خطا در دریافت",false);
         }
