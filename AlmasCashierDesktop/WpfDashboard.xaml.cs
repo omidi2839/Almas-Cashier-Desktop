@@ -54,7 +54,7 @@ public partial class WpfDashboard : Window
     public WpfDashboard()
     {
         InitializeComponent(); InitializePreviewInvoices(); ReadSettings(); BuildMenu(); Navigate("داشبورد");
-        clock.Tick+=(_,_)=>UpdateClock(); clock.Start(); UpdateClock(); Closed+=(_,_)=>clock.Stop();
+        clock.Tick+=(_,_)=>UpdateClock(); clock.Start(); UpdateClock(); Closed+=(_,_)=>{clock.Stop();ClearOperationsOnDisconnect();};
     }
     private static string Fa(string s)=>string.Concat(s.Select(c=>c>='0'&&c<='9'?(char)('۰'+c-'0'):c==','?'٬':c));
     private static string Money(decimal v)=>Fa(v.ToString("N0",CultureInfo.InvariantCulture));
