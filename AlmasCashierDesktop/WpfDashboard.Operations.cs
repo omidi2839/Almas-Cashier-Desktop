@@ -19,7 +19,7 @@ namespace AlmasCashierDesktop;
 // Device bearer tokens must never be sent to this WebView.
 public partial class WpfDashboard
 {
-    private string portalBase = "https://sejadalmas.iq";
+    private string portalBase = "";
     private WebView2? operationsBrowser;
     private TextBlock? operationsStatus;
     private TextBlock? operationsErrorDetails;
@@ -67,7 +67,7 @@ public partial class WpfDashboard
             ["موجودی کالاها"] = "admin/almas_warehouse/stock",
             ["رزرو موجودی"] = "admin/almas_warehouse/reservations",
             ["اسناد انبار"] = "admin/almas_warehouse/documents",
-            ["انبارگردانی"] = "admin/almas_warehouse/cycle_excel_page/1",
+            ["انبارگردانی"] = "admin/almas_warehouse/cycle_counts",
             ["گردش موجودی"] = "admin/almas_warehouse/ledger"
         };
 
