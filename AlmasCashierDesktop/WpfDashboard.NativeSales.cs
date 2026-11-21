@@ -200,7 +200,7 @@ public partial class WpfDashboard
         factory.SetValue(Button.HeightProperty, 30.0);
         factory.SetValue(Button.MarginProperty, new Thickness(3));
         factory.SetValue(Button.StyleProperty, (Style)FindResource("Secondary"));
-        factory.AddHandler(Button.ClickEvent, new RoutedEventHandler((sender, _) =>
+        factory.AddHandler(Button.ClickEvent, new RoutedEventHandler((sender, e) =>
         {
             if (sender is Button b && b.DataContext is NativeInvoiceRow row)
                 _ = OpenNativeInvoiceDetailAsync(row.Id);
@@ -210,7 +210,7 @@ public partial class WpfDashboard
         {
             Header = "عملیات", CellTemplate = buttonTemplate, Width = new DataGridLength(105)
         });
-        nativeInvoiceGrid.MouseDoubleClick += (_, _) =>
+        nativeInvoiceGrid.MouseDoubleClick += (sender, e) =>
         {
             if (nativeInvoiceGrid.SelectedItem is NativeInvoiceRow row)
                 _ = OpenNativeInvoiceDetailAsync(row.Id);
