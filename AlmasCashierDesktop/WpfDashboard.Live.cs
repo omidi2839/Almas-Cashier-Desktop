@@ -46,7 +46,7 @@ public partial class WpfDashboard
     {
         ModeLabel.Text=active?"نجف • اطلاعات سامانه • فقط مشاهده":"شعبه نجف  •  محیط آزمایشی";
         TableNote.Text=active?"اطلاعات دریافت‌شده از سرور":"داده‌های نمونه • بدون اثر مالی";
-        FooterMode.Text=active?"0.3.0 | WPF بومی • داده زنده":"0.3.0 | پیش‌نمایش محلی WPF";
+        FooterMode.Text=active?"0.3.1 | WPF بومی • کاتالوگ واقعی":"0.3.1 | پیش‌نمایش محلی WPF";
         ConnectButton.Content=active?"به‌روزرسانی":"اتصال به سامانه";
         CreateButton.IsEnabled=!active;
         PayButton.IsEnabled=ReceiptButton.IsEnabled=!active;
