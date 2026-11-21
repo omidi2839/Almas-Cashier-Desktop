@@ -589,6 +589,52 @@ public partial class WpfDashboard
         window.ShowDialog();
     }
 
+    private async Task FillNativeProductsAsync(
+        string query, ComboBox target, ComboBox collections, ComboBox colors, ComboBox sizes)
+    {
+        if (!liveMode) return;
+        int Id(ComboBox c) => (c.SelectedItem as NativePick)?.Id ?? 0;
+        if (query.Trim().Length < 2 && Id(collections) == 0 && Id(colors) == 0 && Id(sizes) == 0)
+        {
+            MessageBox.Show(this, "حداقل دو حرف از کد یا نام کالا وارد کنید یا یک فیلتر انتخاب کنید.");
+            return;
+        }
+        try
+        {
+            var trimmed = query.Trim();
+            var path = "products?q=" +
+                Uri.EscapeDataString(trimmed[..Math.Min(trimmed.Length, 75)]) +
+                "&collection=" + Id(collections) + "&color=" + Id(colors) + "&size=" + Id(sizes);
+            var response = await ReadApi(liveGateway, token, path);
+            var options = new List<NativeProductPick>();
+            foreach (var item in response.GetProperty("items").EnumerateArray())
+            {
+                decimal? stock = item.TryGetProperty("stock", out var value) &&
+                    value.ValueKind == JsonValueKind.Number ? ReadNumber(item, "stock") : null;
+                var code = ReadText(item, "code");
+                var label = ReadText(item, "name") +
+                    " | کد " + code +
+                    " | " + ReadText(item, "group_name") +
+                    " | " + ReadText(item, "color_name") +
+                    " | " + ReadText(item, "size_name") +
+                    " | قابل فروش: " + (stock.HasValue ? Money(stock.Value) : "معاف از کنترل انبار");
+                options.Add(new NativeProductPick(Number(item, "id"), Clean(label), stock, code));
+            }
+            target.ItemsSource = options;
+            target.SelectedIndex = options.Count == 1 ? 0 : -1;
+            if (options.Count == 0) MessageBox.Show(this,
+                "کالایی مطابق مشخصات در مدیریت کالا یافت نشد.");
+        }
+        catch (Exception ex)
+        {
+            // An unreliable stock check must fail closed.
+            target.ItemsSource = Array.Empty<NativeProductPick>();
+            MessageBox.Show(this,
+                "جستجوی کالا یا موجودی قابل فروش در دسترس نیست (" +
+                ex.GetType().Name + "). انتخاب محصول تا رفع مشکل انبار مسدود است.");
+        }
+    }
+
     private async Task FillNativeChoicesAsync(string type, string query, ComboBox target)
     {
         if (!liveMode || query.Trim().Length < 2)
