@@ -22,6 +22,8 @@ public partial class WpfDashboard
     private string portalBase = "https://sejadalmas.iq";
     private WebView2? operationsBrowser;
     private TextBlock? operationsStatus;
+    private TextBlock? operationsErrorDetails;
+    private Border? operationsErrorPanel;
     private bool operationsReady;
     private int operationsGeneration;
     private static readonly HttpClient PortalProbe = new(
@@ -36,6 +38,12 @@ public partial class WpfDashboard
     private void PortalMessage(string message)
     {
         if (operationsStatus != null) operationsStatus.Text = message;
+    }
+    private void PortalFailure(string message)
+    {
+        PortalMessage(message);
+        if (operationsErrorDetails != null) operationsErrorDetails.Text = message;
+        if (operationsErrorPanel != null) operationsErrorPanel.Visibility = Visibility.Visible;
     }
 
     private static readonly IReadOnlyDictionary<string, string> OperationalPaths =
@@ -121,6 +129,7 @@ public partial class WpfDashboard
                 return;
 
             var target = portalBase.TrimEnd('/') + "/" + path;
+            if (operationsErrorPanel != null) operationsErrorPanel.Visibility = Visibility.Collapsed;
             operationsStatus!.Text = "در حال باز کردن صفحه واقعی: " + name + " • " + SafeUrl(target);
             await CheckPortalAsync();
             if (!liveMode || turn != operationsGeneration) return;
@@ -129,7 +138,7 @@ public partial class WpfDashboard
         catch (Exception ex)
         {
             if (turn != operationsGeneration) return;
-            PortalMessage("راه‌اندازی پنل ناموفق بود: " + ex.GetType().Name + ". تنظیمات HTTPS و گواهی سایت را بررسی کنید.");
+            PortalFailure("راه‌اندازی پنل ناموفق بود: " + ex.GetType().Name + ". تنظیمات HTTPS و گواهی سایت را بررسی کنید.");
             MessageBox.Show(this,
                 "Microsoft Edge WebView2 Runtime باید روی ویندوز نصب باشد. " +
                 "گواهی HTTPS و نشانی پنل را بررسی کنید.",
@@ -215,6 +224,26 @@ public partial class WpfDashboard
             };
             Grid.SetRow(operationsBrowser, 1);
             frame.Children.Add(operationsBrowser);
+            operationsErrorDetails = new TextBlock
+            {
+                Text = "",
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 15,
+                TextAlignment = TextAlignment.Center,
+                MaxWidth = 880,
+                Margin = new Thickness(30),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = Brushes.DarkRed
+            };
+            operationsErrorPanel = new Border
+            {
+                Visibility = Visibility.Collapsed,
+                Background = Brushes.FloralWhite,
+                Child = operationsErrorDetails
+            };
+            Grid.SetRow(operationsErrorPanel, 1);
+            frame.Children.Add(operationsErrorPanel);
             OperationsView.Children.Add(frame);
         }
 
@@ -233,12 +262,12 @@ public partial class WpfDashboard
             {
                 e.Cancel = true;
                 if (Uri.TryCreate(e.Uri,UriKind.Absolute,out var redirect))
-                    PortalMessage(redirect.Scheme != Uri.UriSchemeHttps
+                    PortalFailure(redirect.Scheme != Uri.UriSchemeHttps
                         ? "علت باز نشدن: سایت مدیریت به HTTP هدایت شد؛ به دلیل خطر افشای نشست ورود مسدود است. " +
                           "آدرس پایه HTTPS و کوکی‌های سامانه را در سرور اصلاح کنید. مسیر: " + SafeUrl(e.Uri)
                         : "علت باز نشدن: هدایت به دامنه دیگری مسدود شد. دامنه HTTPS واقعی پنل را در تنظیمات وارد کنید. مقصد: " + SafeUrl(e.Uri));
                 else
-                    PortalMessage("نشانی هدایت پنل نامعتبر است.");
+                    PortalFailure("نشانی هدایت پنل نامعتبر است.");
             }
         };
         operationsBrowser.CoreWebView2.NewWindowRequested += (_, e) =>
@@ -251,18 +280,19 @@ public partial class WpfDashboard
         {
             if (!e.IsSuccess)
             {
-                PortalMessage("صفحه پنل بارگذاری نشد؛ خطای مرورگر: " + e.WebErrorStatus +
+                PortalFailure("صفحه پنل بارگذاری نشد؛ خطای مرورگر: " + e.WebErrorStatus +
                     "؛ کد HTTP: " + e.HttpStatusCode +
                     ". نشانی پنل: " + SafeUrl(operationsBrowser?.Source?.ToString()));
             }
             else if (e.HttpStatusCode >= 400)
             {
-                PortalMessage("پنل به خطای HTTP " + e.HttpStatusCode +
+                PortalFailure("پنل به خطای HTTP " + e.HttpStatusCode +
                     " پاسخ داد. " + (e.HttpStatusCode == 419
                     ? "مشکل نشست یا CSRF در سامانه؛ از سمت سرور بررسی شود."
                     : "مسیر صفحه یا مجوز کاربر را در سامانه بررسی کنید.") +
                     " مسیر: " + SafeUrl(operationsBrowser?.Source?.ToString()));
             }
+            else if (operationsErrorPanel != null) operationsErrorPanel.Visibility = Visibility.Collapsed;
         };
         operationsReady = true;
     }
@@ -271,7 +301,7 @@ public partial class WpfDashboard
     {
         if (!ValidGateway(portalBase))
         {
-            PortalMessage("نشانی پنل عملیاتی HTTPS معتبر نیست. در تنظیمات آن را اصلاح کنید.");
+            PortalFailure("نشانی پنل عملیاتی HTTPS معتبر نیست. در تنظیمات آن را اصلاح کنید.");
             return;
         }
         var url = portalBase.TrimEnd('/') + "/admin/authentication";
@@ -285,14 +315,14 @@ public partial class WpfDashboard
                     new Uri(new Uri(portalBase.TrimEnd('/') + "/"), location);
                 if (!IsPortalDestination(destination.ToString()))
                 {
-                    PortalMessage("آزمون پنل: پاسخ " + code +
+                    PortalFailure("آزمون پنل: پاسخ " + code +
                         " به دامنه یا پروتکل متفاوت هدایت می‌کند: " + SafeUrl(destination.ToString()) +
                         ". آدرس HTTPS واقعی پنل و تنظیمات سرور را بررسی کنید.");
                     return;
                 }
             }
             if (code >= 400)
-                PortalMessage("آزمون پنل: HTTP " + code +
+                PortalFailure("آزمون پنل: HTTP " + code +
                     " در مسیر ورود سامانه. اتصال کلید دستگاه مستقل است و این خطا از ورود وب می‌آید.");
             else
                 PortalMessage("آزمون پنل: HTTP " + code +
@@ -300,7 +330,7 @@ public partial class WpfDashboard
         }
         catch (Exception ex)
         {
-            PortalMessage("آزمون پنل ناموفق: " + ex.GetType().Name +
+            PortalFailure("آزمون پنل ناموفق: " + ex.GetType().Name +
                 ". آدرس پنل را در تنظیمات بررسی کنید: " + SafeUrl(url));
         }
     }
