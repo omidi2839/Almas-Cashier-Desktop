@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -198,7 +199,7 @@ public partial class WpfDashboard
         factory.SetValue(Button.MinWidthProperty, 78.0);
         factory.SetValue(Button.HeightProperty, 30.0);
         factory.SetValue(Button.MarginProperty, new Thickness(3));
-        factory.SetResourceReference(Button.StyleProperty, "Secondary");
+        factory.SetValue(Button.StyleProperty, (Style)FindResource("Secondary"));
         factory.AddHandler(Button.ClickEvent, new RoutedEventHandler((sender, _) =>
         {
             if (sender is Button b && b.DataContext is NativeInvoiceRow row)
