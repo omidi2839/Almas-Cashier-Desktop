@@ -61,6 +61,11 @@ public partial class WpfDashboard
         }
     }
 
+    private sealed record NativeProductPick(int Id, string Name, decimal? Stock, string Code)
+    {
+        public override string ToString() => Name;
+    }
+
     private sealed class NativeDraftLine
     {
         public int ItemId { get; init; }
@@ -476,15 +481,55 @@ public partial class WpfDashboard
         form.Children.Add(NativeTitle("انتخاب کالاها"));
         var pick = new WrapPanel();
         var productSearch = new TextBox { MinWidth = 230, ToolTip = "نام یا کد کالا" };
-        var productChoices = new ComboBox { MinWidth = 340 };
+        var productChoices = new ComboBox { MinWidth = 460 };
+        var collections = new ComboBox { MinWidth = 165 };
+        var colors = new ComboBox { MinWidth = 155 };
+        var sizes = new ComboBox { MinWidth = 150 };
+        bool updatingFacets = false;
+        async Task RefreshFacets()
+        {
+            if (updatingFacets || !liveMode) return;
+            updatingFacets = true;
+            try
+            {
+                int Id(ComboBox box) => (box.SelectedItem as NativePick)?.Id ?? 0;
+                var response = await ReadApi(liveGateway, token, "product_filters?collection=" + Id(collections) +
+                    "&color=" + Id(colors) + "&size=" + Id(sizes));
+                void Fill(ComboBox box, string key, string title)
+                {
+                    var current = (box.SelectedItem as NativePick)?.Id ?? 0;
+                    var options = new List<NativePick> { new(0, title) };
+                    foreach (var item in response.GetProperty(key).EnumerateArray())
+                        options.Add(new NativePick(Number(item, "id"), ReadText(item, "name")));
+                    box.ItemsSource = options;
+                    box.SelectedItem = options.FirstOrDefault(x => x.Id == current) ?? options[0];
+                }
+                Fill(collections, "collections", "همه کلکسیون‌ها");
+                Fill(colors, "colors", "همه رنگ‌ها");
+                Fill(sizes, "sizes", "همه اندازه‌ها");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(window, "فیلترهای کالا از سرور دریافت نشد (" + ex.GetType().Name +
+                    "). نسخه رابط سرور و دسترسی را بررسی کنید.");
+            }
+            finally { updatingFacets = false; }
+        }
+        collections.SelectionChanged += (sender, e) => { if (!updatingFacets) _ = RefreshFacets(); };
+        colors.SelectionChanged += (sender, e) => { if (!updatingFacets) _ = RefreshFacets(); };
+        sizes.SelectionChanged += (sender, e) => { if (!updatingFacets) _ = RefreshFacets(); };
+        _ = RefreshFacets();
         var qty = new TextBox { Text = "1", MinWidth = 95, FlowDirection = FlowDirection.LeftToRight };
         var discount = new TextBox { Text = "0", MinWidth = 95, FlowDirection = FlowDirection.LeftToRight };
         pick.Children.Add(NativeField("کد یا نام کالا", productSearch, 240));
         pick.Children.Add(NativeButton("جستجوی کالا", () =>
         {
-            _ = FillNativeChoicesAsync("products", productSearch.Text, productChoices);
+            _ = FillNativeProductsAsync(productSearch.Text, productChoices, collections, colors, sizes);
         }));
-        pick.Children.Add(NativeField("کالای انتخابی", productChoices, 350));
+        pick.Children.Add(NativeField("کلکسیون", collections, 180));
+        pick.Children.Add(NativeField("رنگ", colors, 167));
+        pick.Children.Add(NativeField("اندازه", sizes, 162));
+        pick.Children.Add(NativeField("کالای انتخابی و موجودی قابل فروش", productChoices, 475));
         pick.Children.Add(NativeField("تعداد", qty, 105));
         pick.Children.Add(NativeField("تخفیف درخواست‌شده ٪", discount, 116));
         form.Children.Add(NativePanel(pick));
@@ -502,7 +547,7 @@ public partial class WpfDashboard
         var action = new WrapPanel();
         action.Children.Add(NativeButton("افزودن قلم", () =>
         {
-            if (productChoices.SelectedItem is not NativePick choice)
+            if (productChoices.SelectedItem is not NativeProductPick choice)
             {
                 MessageBox.Show(window, "ابتدا یک کالای معتبر انتخاب کنید."); return;
             }
@@ -515,6 +560,12 @@ public partial class WpfDashboard
                 || pct < 0 || pct > 100)
             {
                 MessageBox.Show(window, "درصد تخفیف باید بین صفر تا صد باشد."); return;
+            }
+            if (choice.Stock is decimal available && amount > available)
+            {
+                MessageBox.Show(window, "موجودی قابل فروش کافی نیست. موجودی فعلی: " +
+                    Money(available) + " | تعداد درخواستی: " + Money(amount));
+                return;
             }
             if (selected.Any(x => x.ItemId == choice.Id))
             {
@@ -532,7 +583,7 @@ public partial class WpfDashboard
         form.Children.Add(selectedGrid);
         form.Children.Add(new TextBlock
         {
-            Text = "مبلغ نهایی، تخفیف مجاز و موجودی قابل فروش باید توسط سرور در لحظه ثبت محاسبه و تأیید شوند.",
+            Text = "موجودی قابل فروش از دفتر جدید انبار و رزروهای فعال خوانده می‌شود. نرخ نوع فروش و تخفیف مجاز باید از Quote رسمی مرکز فروش دریافت و در ثبت نهایی دوباره تأیید شوند.",
             Foreground = Brushes.SaddleBrown, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 12, 8, 10)
         });
         window.ShowDialog();
@@ -551,7 +602,8 @@ public partial class WpfDashboard
             var choices = new List<NativePick>();
             foreach (var i in result.GetProperty("items").EnumerateArray())
                 choices.Add(new NativePick(Number(i, "id"), Clean(
-                    ReadText(i, "name") + (type == "products" ? " | " + ReadText(i, "code") : ""))));
+                    ReadText(i, "name") + (type == "customers" && ReadText(i, "extra") != "" ?
+                        " | " + ReadText(i, "extra") : ""))));
             target.ItemsSource = choices;
             target.SelectedIndex = choices.Count == 1 ? 0 : -1;
             if (choices.Count == 0) MessageBox.Show(this, "موردی در سامانه یافت نشد.");
