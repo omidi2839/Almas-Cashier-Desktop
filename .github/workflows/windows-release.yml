@@ -9,7 +9,7 @@ on:
       - '.github/workflows/windows-release.yml'
   push:
     branches:
-      - feat/native-sales-invoices-0.3.0
+      - feat/invoice-parity-audit-0.3.1
     tags:
       - cashier-v*
 jobs:
@@ -49,7 +49,7 @@ jobs:
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/AlmasCashier.iss
       - uses: actions/upload-artifact@v4
         with:
-          name: AlmasCashierDesktop_v0.3.0_Windows_x64
+          name: AlmasCashierDesktop_v0.3.1_Windows_x64
           path: |
             artifacts/installer/*.exe
             artifacts/publish/*.exe
