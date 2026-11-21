@@ -46,9 +46,12 @@ public partial class WpfDashboard
     {
         ModeLabel.Text=active?"نجف • اطلاعات سامانه • فقط مشاهده":"شعبه نجف  •  محیط آزمایشی";
         TableNote.Text=active?"اطلاعات دریافت‌شده از سرور":"داده‌های نمونه • بدون اثر مالی";
-        FooterMode.Text=active?"0.2.4 | اتصال خواندنی WPF":"0.2.4 | پیش‌نمایش محلی WPF";
+        FooterMode.Text=active?"0.3.0 | WPF بومی • داده زنده":"0.3.0 | پیش‌نمایش محلی WPF";
         ConnectButton.Content=active?"به‌روزرسانی":"اتصال به سامانه";
-        CreateButton.IsEnabled=PayButton.IsEnabled=ReceiptButton.IsEnabled=!active;
+        CreateButton.IsEnabled=!active;
+        PayButton.IsEnabled=ReceiptButton.IsEnabled=!active;
+        CreateButton.Content=active?"صدور فاکتور بومی":"＋ ایجاد فاکتور";
+        CreateButton.ToolTip=active?"پس از دریافت مجوزهای سرور و ورود به فرم بومی فعال می‌شود":null;
         CreateButton.ToolTip=PayButton.ToolTip=ReceiptButton.ToolTip=active?"ثبت مالی در این نسخه فعال نیست":null;
     }
     private void LiveSettings()
@@ -135,7 +138,8 @@ public partial class WpfDashboard
         section=name;PageTitle.Text=name;foreach(var pair in nav)pair.Value.Tag=pair.Key==name?"active":null;
         int g=++generation;
         var item=liveMenu.FirstOrDefault(x=>x.Label==name);
-        bool dash=name=="داشبورد"||item.Id=="invoices";
+        if(item.Id=="invoices"){await OpenNativeInvoiceListAsync();return;}
+        bool dash=name=="داشبورد";
         DashboardView.Visibility=dash?Visibility.Visible:Visibility.Collapsed;OtherView.Visibility=dash?Visibility.Collapsed:Visibility.Visible;
         OtherContent.Children.Clear();
         if(dash){TableTitle.Text=name=="داشبورد"?"آخرین فاکتورها":"فاکتورهای الماس";RefreshLive();return;}
