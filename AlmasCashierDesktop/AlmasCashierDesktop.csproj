@@ -8,12 +8,13 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AlmasCashierDesktop</AssemblyName>
     <RootNamespace>AlmasCashierDesktop</RootNamespace>
-    <Version>0.2.4</Version>
+    <Version>0.2.5</Version>
     <ApplicationIcon>..\assets\almas_cashier.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Fonts\*.ttf" />
     <Content Include="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Fonts\OFL.txt')" />
     <Compile Remove="AlmasDashboard.cs;CashierWindow.cs;ServerDialog.cs" />
+  <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
   </ItemGroup>
 </Project>
