@@ -108,6 +108,7 @@ public partial class WpfDashboard : Window
     }
     private void Navigate(string name)
     {
+        HideOperations();
         InvoiceWorkspace.Visibility=Visibility.Collapsed;
         if(liveMode&&name!="تنظیمات"){OpenLive(name);return;}
         section=name;PageTitle.Text=name;
@@ -148,7 +149,7 @@ public partial class WpfDashboard : Window
     }
     private void ReadSettings()
     {
-        try{if(File.Exists(SettingsFile)){var o=JsonSerializer.Deserialize<Dictionary<string,string>>(File.ReadAllText(SettingsFile));if(o!=null&&o.TryGetValue("gateway",out var g)&&ValidGateway(g))gateway=g;}}catch{}
+        try{if(File.Exists(SettingsFile)){var o=JsonSerializer.Deserialize<Dictionary<string,string>>(File.ReadAllText(SettingsFile));if(o!=null){if(o.TryGetValue("gateway",out var g)&&ValidGateway(g))gateway=g;if(o.TryGetValue("portal",out var p)&&ValidGateway(p))portalBase=p;}}}catch{}
     }
     private static bool ValidGateway(string? s)=>Uri.TryCreate(s,UriKind.Absolute,out var u)&&u.Scheme=="https"&&u.UserInfo==""&&u.Host.Length>0&&u.AbsolutePath=="/"&&u.Query==""&&u.Fragment=="";
     private void Settings()
@@ -193,7 +194,11 @@ public partial class WpfDashboard : Window
     }
     private static TextBlock FieldLabel(string s)=>new(){Text=s,Margin=new Thickness(0,12,0,6)};
     private static bool ParseAmount(string s,out decimal v)=>decimal.TryParse(Normalize(s).Replace("٬","").Replace(",",""),NumberStyles.Number,CultureInfo.InvariantCulture,out v)&&v>0&&v<=999999999;
-    private void Create_Click(object sender,RoutedEventArgs e)=>CreateDemo("فاکتور نمونه");
+    private void Create_Click(object sender,RoutedEventArgs e)
+    {
+        if(liveMode){ShowOperations("فاکتورهای الماس");return;}
+        CreateDemo("فاکتور نمونه");
+    }
     private void CreateDemo(string title)
     {
         if(liveMode)return;
@@ -209,7 +214,11 @@ public partial class WpfDashboard : Window
         },true));
         if(w.ShowDialog()==true&&section!="ثبت سفارش")Refresh();
     }
-    private void Payment_Click(object sender,RoutedEventArgs e)=>DemoPayment();
+    private void Payment_Click(object sender,RoutedEventArgs e)
+    {
+        if(liveMode){ShowOperations("فاکتورهای الماس");return;}
+        DemoPayment();
+    }
     private void DemoPayment()
     {
         if(liveMode)return;
@@ -223,7 +232,7 @@ public partial class WpfDashboard : Window
     }
     private void Receipt_Click(object sender,RoutedEventArgs e)
     {
-        if(liveMode)return;
+        if(liveMode){ShowOperations("فاکتورهای الماس");return;}
         var i=InvoicesGrid.SelectedItem as Invoice??invoices.FirstOrDefault();if(i==null)return;
         MessageBox.Show(this,i.Number+"\n"+i.Customer+"\nدریافت نمونه: "+i.PaidText+" دینار\nچاپ رسمی در نسخه آزمایشی فعال نیست.","پیش‌نمایش رسید");
     }
